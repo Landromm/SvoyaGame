@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Своя игра — кнопка игрока</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+
+        :root {
+            --bg-deep:    #0B1E3A;
+            --bg-panel:   #122B4E;
+            --bg-panel2:  #1A3A66;
+            --gold:       #FFD166;
+            --green:      #2ECC71;
+            --red:        #E63946;
+            --text-main:  #F1FAFF;
+            --text-muted: #9FB3C8;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: radial-gradient(circle at 50% 0%, #143055 0%, var(--bg-deep) 60%);
+            font-family: 'Segoe UI', Arial, sans-serif;
+            color: var(--text-main);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Лёгкое «снежное» свечение по углам */
+        body::before,
+        body::after {
+            content: "";
+            position: fixed;
+            width: 340px;
+            height: 340px;
+            border-radius: 50%;
+            filter: blur(90px);
+            opacity: 0.35;
+            pointer-events: none;
+            z-index: 0;
+        }
+        body::before { top: -80px;  left: -80px;  background: #2ECC71; }
+        body::after  { bottom: -80px; right: -80px; background: #FFD166; }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 32px 20px 40px;
+            text-align: center;
+        }
+
+        h1, h2 {
+            color: var(--gold);
+            margin: 0 0 22px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 12px rgba(255, 209, 102, 0.25);
+        }
+        h1 { font-size: 26px; }
+        h2 { font-size: 22px; }
+
+        /* ============ Форма входа ============ */
+        #loginForm {
+            background: var(--bg-panel);
+            border-radius: 16px;
+            padding: 26px 22px 28px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+            border: 1px solid rgba(255, 209, 102, 0.15);
+        }
+
+        .form-group { margin-bottom: 14px; }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            text-align: center;
+            color: var(--text-main);
+            background: var(--bg-deep);
+            border: 2px solid #2C4A75;
+            border-radius: 10px;
+            outline: none;
+            transition: border-color 0.15s ease;
+            caret-color: var(--gold);
+        }
+        input::placeholder { color: var(--text-muted); }
+        input:focus { border-color: var(--gold); }
+
+        .btn-connect {
+            width: 100%;
+            margin-top: 6px;
+            padding: 14px 24px;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--bg-deep);
+            background: var(--gold);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #b89a3d;
+            transition: 0.1s;
+        }
+        .btn-connect:active {
+            box-shadow: 0 2px 0 #b89a3d;
+            transform: translateY(4px);
+        }
+
+        /* ============ Игровая зона ============ */
+        #gameArea { display: none; }
+
+        .room-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            background: var(--bg-panel);
+            border: 1px solid rgba(255, 209, 102, 0.25);
+            border-radius: 999px;
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 18px;
+        }
+        .room-badge b { color: var(--gold); }
+
+        /* Счёт игрока */
+        .score-card {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            background: var(--bg-panel);
+            border-radius: 14px;
+            padding: 14px 20px;
+            margin: 0 auto 28px;
+            width: fit-content;
+            min-width: 220px;
+            border: 1px solid rgba(46, 204, 113, 0.35);
+            box-shadow: inset 0 0 30px rgba(46, 204, 113, 0.06);
+        }
+        .score-card .label {
+            color: var(--text-muted);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .score-card .value {
+            color: var(--gold);
+            font-size: 32px;
+            font-weight: 800;
+            min-width: 60px;
+            text-align: center;
+            transition: color 0.2s;
+        }
+        .score-card .value.flash-up   { color: var(--green); }
+        .score-card .value.flash-down { color: var(--red); }
+
+		#playerNameHeader {
+			font-size: 24px;
+			margin-bottom: 8px;
+			color: var(--gold);
+			text-shadow: 0 0 14px rgba(255, 209, 102, 0.45);
+		}
+
+        /* Большая кнопка */
+        #buzzer {
+            display: none;
+            margin: 0 auto;
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            border: none;
+            font-size: 30px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: #fff;
+            background: radial-gradient(circle at 50% 35%, #ff6b74 0%, var(--red) 60%, #b3242f 100%);
+            box-shadow: 0 14px 0 #8f1f28, 0 20px 40px rgba(230, 57, 70, 0.35);
+            cursor: pointer;
+            transition: 0.1s;
+            user-select: none;
+        }
+        #buzzer:active:not(:disabled) {
+            box-shadow: 0 4px 0 #8f1f28, 0 8px 20px rgba(230, 57, 70, 0.35);
+            transform: translateY(10px);
+        }
+        #buzzer:disabled {
+            background: radial-gradient(circle at 50% 35%, #3C4A5E 0%, #2C3E50 60%, #1A2634 100%);
+            box-shadow: 0 14px 0 #1A2634;
+            color: #566573;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Статус */
+        #status {
+            margin-top: 30px;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-muted);
+            min-height: 28px;
+            transition: color 0.2s;
+        }
+        #status.win  { color: var(--green); }
+        #status.lose { color: var(--red); }
+
+        /* Снежинки */
+        .snow {
+            position: fixed;
+            top: -10px;
+            color: rgba(241, 250, 255, 0.7);
+            font-size: 14px;
+            pointer-events: none;
+            z-index: 0;
+            animation: fall linear infinite;
+        }
+        @keyframes fall {
+            0%   { transform: translateY(-10px) rotate(0deg); opacity: 0; }
+            10%  { opacity: 0.9; }
+            100% { transform: translateY(105vh) rotate(360deg); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Звук буззера -->
+    <audio id="buzzSound" src="buzz.wav" preload="auto"></audio>
+	
+    <div class="container">
+
+        <!-- ============== Форма входа ============== -->
+        <div id="loginForm">
+            <h1>🎄 Своя игра</h1>
+            <div class="form-group">
+                <input type="text" id="roomInput" placeholder="Номер комнаты (например, 1234)" inputmode="numeric">
+            </div>
+            <div class="form-group">
+                <input type="text" id="nameInput" placeholder="Ваше имя или никнейм" maxlength="20">
+            </div>
+            <button class="btn-connect" onclick="connectToRoom()">Войти в комнату</button>
+        </div>
+
+		<!-- ============== Игровая зона ============== -->
+		<div id="gameArea">
+			<h2 id="playerNameHeader">—</h2>
+			<div class="room-badge">Комната <b id="roomTitle">—</b></div>
+
+			<div class="score-card">
+				<span class="label">Ваш счёт</span>
+				<span class="value" id="myScore">0</span>
+			</div>
+
+			<button id="buzzer">ЖМИ!</button>
+
+			<div id="status">Ожидание начала...</div>
+		</div>
+
+    </div>
+
+    <script>
+        let socket;
+        let roomNumber;
+        let playerName;
+		
+		// ---- Звук ----
+const buzzSound = document.getElementById('buzzSound');
+
+/**
+ * Воспроизведение «бипа». Не блокирует вызывающий код.
+ */
+function playBuzz() {
+    try {
+        buzzSound.currentTime = 0;
+        const p = buzzSound.play();
+        if (p && typeof p.catch === 'function') {
+            p.catch(() => { /* браузер мог заблокировать автоплей — игнор */ });
+        }
+    } catch (_) { /* игнорируем */ }
+}
+
+/**
+ * Разблокировка аудио после первого пользовательского действия.
+ * Нужна для iOS Safari и некоторых Android-браузеров.
+ */
+function unlockAudio() {
+    try {
+        buzzSound.volume = 0;
+        const p = buzzSound.play();
+        if (p && typeof p.then === 'function') {
+            p.then(() => {
+                buzzSound.pause();
+                buzzSound.currentTime = 0;
+                buzzSound.volume = 1;
+            }).catch(() => {
+                buzzSound.volume = 1;
+            });
+        } else {
+            buzzSound.volume = 1;
+        }
+    } catch (_) {
+        buzzSound.volume = 1;
+    }
+}
+
+        // ============================================================
+        // ПОДКЛЮЧЕНИЕ К КОМНАТЕ
+        // ============================================================
+        function connectToRoom() {
+            roomNumber = document.getElementById('roomInput').value.trim();
+            playerName = document.getElementById('nameInput').value.trim();
+
+            if (!roomNumber || !playerName) {
+                alert('Пожалуйста, заполните все поля!');
+                return;
+            }
+
+            // io() без параметров — подключаемся туда, откуда загружена страница
+            socket = io();
+
+            // --------------------------------------------------------
+            // Победитель зафиксирован
+            // --------------------------------------------------------
+            socket.on("onWinnerDetected", (winnerName) => {
+                const buzzer = document.getElementById('buzzer');
+                buzzer.disabled = true;
+
+                const status = document.getElementById('status');
+                if (winnerName === playerName) {
+                    status.innerHTML = "🥇 ВЫ ПЕРВЫЙ!";
+                    status.className = "win";
+                } else {
+                    status.innerHTML = `Победил: ${winnerName}`;
+                    status.className = "lose";
+                }
+            });
+
+            // --------------------------------------------------------
+            // Сброс раунда
+            // --------------------------------------------------------
+            socket.on("onGameReset", () => {
+                const buzzer = document.getElementById('buzzer');
+                buzzer.disabled = false;
+
+                const status = document.getElementById('status');
+                status.innerText = "Кнопка активна! Приготовьтесь...";
+                status.className = "";
+            });
+
+            // --------------------------------------------------------
+            // Личный счёт игрока
+            // --------------------------------------------------------
+            socket.on("onMyScore", (payload) => {
+                if (!payload || payload.name !== playerName) return;
+                updateMyScore(payload.score);
+            });
+
+            // --------------------------------------------------------
+            // Общий снимок очков (тоже можно использовать для личного)
+            // --------------------------------------------------------
+            socket.on("onScoresUpdated", (list) => {
+                if (!Array.isArray(list)) return;
+                const me = list.find(p => p.name === playerName);
+                if (me) updateMyScore(me.score);
+            });
+
+            // --------------------------------------------------------
+            // Успешное соединение
+            // --------------------------------------------------------
+            socket.on("connect", () => {
+                socket.emit("joinRoom", roomNumber, playerName, (response) => {
+                    if (response.success) {
+                        document.getElementById('loginForm').style.display = 'none';
+                        document.getElementById('gameArea').style.display = 'block';
+                        document.getElementById('roomTitle').innerText = roomNumber;
+						document.getElementById('playerNameHeader').innerText = playerName; 
+                        document.getElementById('buzzer').style.display = 'block';
+                        document.getElementById('status').innerText = "Ожидание начала раунда...";
+						
+						// Разблокируем аудио-контекст (важно для iOS/Android)
+						unlockAudio();
+                    } else {
+                        alert(response.message);
+                        socket.disconnect();
+                    }
+                });
+            });
+
+            // --------------------------------------------------------
+            // Разрыв соединения
+            // --------------------------------------------------------
+            socket.on("disconnect", () => {
+                document.getElementById('loginForm').style.display = 'block';
+                document.getElementById('gameArea').style.display = 'none';
+                alert("Соединение с сервером разорвано.");
+            });
+        }
+
+        // ============================================================
+        // ОБНОВЛЕНИЕ ЛИЧНОГО СЧЁТА С ПОДСВЕТКОЙ
+        // ============================================================
+        let prevScore = 0;
+
+        function updateMyScore(newScore) {
+            const el = document.getElementById('myScore');
+            const value = Number(newScore) || 0;
+
+            el.innerText = value;
+
+            if (value > prevScore) {
+                el.classList.add('flash-up');
+            } else if (value < prevScore) {
+                el.classList.add('flash-down');
+            }
+
+            setTimeout(() => {
+                el.classList.remove('flash-up');
+                el.classList.remove('flash-down');
+            }, 600);
+
+            prevScore = value;
+        }
+
+        // ============================================================
+        // КЛИК ПО КНОПКЕ
+        // ============================================================
+document.getElementById('buzzer').addEventListener('click', () => {
+    if (!socket || !socket.connected) return;
+
+    // 1) СНАЧАЛА на сервер — тайминг регистрации не меняется
+    socket.emit("playerClick", {
+        roomNumber: roomNumber,
+        playerName: playerName
+    });
+
+    // 2) ПОТОМ локально играем звук — не блокирует emit
+    playBuzz();
+});
+
+        // ============================================================
+        // СНЕЖИНКИ (чисто декоративно)
+        // ============================================================
+        (function spawnSnow() {
+            const flakes = ['❅', '❆', '❄', '•'];
+            const count = 22;
+
+            for (let i = 0; i < count; i++) {
+                const s = document.createElement('div');
+                s.className = 'snow';
+                s.innerText = flakes[Math.floor(Math.random() * flakes.length)];
+                s.style.left = Math.random() * 100 + 'vw';
+                s.style.fontSize = (10 + Math.random() * 14) + 'px';
+                s.style.animationDuration = (6 + Math.random() * 8) + 's';
+                s.style.animationDelay = (Math.random() * 8) + 's';
+                s.style.opacity = 0.4 + Math.random() * 0.5;
+                document.body.appendChild(s);
+            }
+        })();
+    </script>
+</body>
+</html>

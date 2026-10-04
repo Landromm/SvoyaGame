@@ -1,0 +1,148 @@
+﻿<Window x:Class="SvoyaGame.View.MainViews.GameBoardWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Табло для зала"
+        Height="720" Width="1280"
+        WindowStartupLocation="Manual"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        Background="#0B1E3A">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="BgDeep"      Color="#0B1E3A"/>
+        <SolidColorBrush x:Key="BgPanel"     Color="#122B4E"/>
+        <SolidColorBrush x:Key="BgPanel2"    Color="#1A3A66"/>
+        <SolidColorBrush x:Key="AccentGold"  Color="#FFD166"/>
+        <SolidColorBrush x:Key="AccentGreen" Color="#2ECC71"/>
+        <SolidColorBrush x:Key="TextMain"    Color="#F1FAFF"/>
+
+        <!-- Стиль ячейки-плитки поля (только для отображения, не кликабельна) -->
+        <Style x:Key="TileStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource BgPanel}"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Margin" Value="6"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AccentGold}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style x:Key="TileTextStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource AccentGold}"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <!-- =============== РЕЖИМ 1: ИГРОВОЕ ПОЛЕ =============== -->
+        <Grid x:Name="GridView">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0"
+                       Text="🎄 СВОЯ ИГРА 🎄"
+                       Foreground="{StaticResource AccentGold}"
+                       FontSize="34"
+                       FontWeight="Bold"
+                       HorizontalAlignment="Center"
+                       Margin="0,18,0,10"/>
+
+            <UniformGrid x:Name="BoardGrid"
+                         Grid.Row="1"
+                         Rows="5"
+                         Columns="6"
+                         Margin="14"/>
+
+            <TextBlock Grid.Row="2"
+                       Text="Выберите тему и стоимость"
+                       Foreground="#9FB3C8"
+                       FontSize="18"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,18"/>
+        </Grid>
+
+        <!-- =============== РЕЖИМ 2: ПОКАЗ ВОПРОСА =============== -->
+        <Grid x:Name="QuestionView" Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <!-- тема + цена -->
+                <RowDefinition Height="*"/>
+                <!-- вопрос -->
+                <RowDefinition Height="Auto"/>
+                <!-- ответ -->
+            </Grid.RowDefinitions>
+
+            <!-- Шапка -->
+            <StackPanel Grid.Row="0"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Center"
+                        Margin="0,24,0,10">
+                <TextBlock x:Name="HeaderTheme"
+                           Text="Тема"
+                           Foreground="{StaticResource AccentGold}"
+                           FontSize="28"
+                           FontWeight="Bold"/>
+                <TextBlock Text=" • "
+                           Foreground="{StaticResource AccentGold}"
+                           FontSize="28"
+                           FontWeight="Bold"/>
+                <TextBlock x:Name="HeaderPrice"
+                           Text="100"
+                           Foreground="{StaticResource AccentGreen}"
+                           FontSize="28"
+                           FontWeight="Bold"/>
+            </StackPanel>
+
+            <!-- Вопрос -->
+            <Border Grid.Row="1"
+                    Background="{StaticResource BgPanel}"
+                    CornerRadius="16"
+                    Margin="40,10,40,10"
+                    Padding="40">
+                <TextBlock x:Name="QuestionText"
+                           Text="Текст вопроса"
+                           Foreground="{StaticResource TextMain}"
+                           FontSize="44"
+                           FontWeight="Bold"
+                           TextWrapping="Wrap"
+                           TextAlignment="Center"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Center"/>
+            </Border>
+
+            <!-- Ответ (скрыт по умолчанию) -->
+            <Border x:Name="AnswerPanel"
+                    Grid.Row="2"
+                    Background="#0F2544"
+                    CornerRadius="10"
+                    Margin="40,0,40,24"
+                    Padding="18"
+                    Visibility="Collapsed">
+                <StackPanel>
+                    <TextBlock Text="ОТВЕТ:"
+                               Foreground="#9FB3C8"
+                               FontSize="14"
+                               FontWeight="Bold"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock x:Name="AnswerText"
+                               Text=""
+                               Foreground="{StaticResource AccentGreen}"
+                               FontSize="24"
+                               FontWeight="Bold"
+                               TextWrapping="Wrap"
+                               TextAlignment="Center"
+                               HorizontalAlignment="Center"
+                               Margin="0,6,0,0"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>
