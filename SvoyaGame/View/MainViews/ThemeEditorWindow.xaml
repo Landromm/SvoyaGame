@@ -210,23 +210,37 @@
 		</Border>
 
 		<!-- НИЖНЯЯ ПАНЕЛЬ: кнопки -->
-		<StackPanel Grid.Row="1" Grid.ColumnSpan="2"
-                    Orientation="Horizontal"
-                    HorizontalAlignment="Right"
-                    Margin="0,12,0,0">
-			<Button x:Name="BtnCancel"
-                    Style="{StaticResource BlueButton}"
-                    Content="Отмена"
-                    Click="BtnCancel_Click"
-                    Width="140"
-                    Height="40"/>
-			<Button x:Name="BtnSave"
-                    Style="{StaticResource GoldButton}"
-                    Content="💾 СОХРАНИТЬ"
-                    Click="BtnSave_Click"
-                    Width="180"
-                    Height="40"
-                    Margin="10,0,0,0"/>
-		</StackPanel>
+		<Grid Grid.Row="1" Grid.ColumnSpan="2" Margin="0,12,0,0">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="*"/>
+				<ColumnDefinition Width="Auto"/>
+			</Grid.ColumnDefinitions>
+
+			<Button x:Name="BtnOpenMedia"
+            Grid.Column="0"
+            Style="{StaticResource BlueButton}"
+            Content="📁 ОТКРЫТЬ MEDIA"
+            Click="BtnOpenMedia_Click"
+            Width="180"
+            Height="40"
+            FontSize="12"/>
+
+			<StackPanel Grid.Column="2" Orientation="Horizontal">
+				<Button x:Name="BtnCancel"
+                Style="{StaticResource BlueButton}"
+                Content="Отмена"
+                Click="BtnCancel_Click"
+                Width="140"
+                Height="40"/>
+				<Button x:Name="BtnSave"
+                Style="{StaticResource GoldButton}"
+                Content="💾 СОХРАНИТЬ"
+                Click="BtnSave_Click"
+                Width="180"
+                Height="40"
+                Margin="10,0,0,0"/>
+			</StackPanel>
+		</Grid>
 	</Grid>
 </Window>

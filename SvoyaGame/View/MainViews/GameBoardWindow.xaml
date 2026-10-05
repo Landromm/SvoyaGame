@@ -10,14 +10,24 @@
         Background="#0B1E3A">
 
     <Window.Resources>
-        <SolidColorBrush x:Key="BgDeep"      Color="#0B1E3A"/>
-        <SolidColorBrush x:Key="BgPanel"     Color="#122B4E"/>
-        <SolidColorBrush x:Key="BgPanel2"    Color="#1A3A66"/>
-        <SolidColorBrush x:Key="AccentGold"  Color="#FFD166"/>
-        <SolidColorBrush x:Key="AccentGreen" Color="#2ECC71"/>
-        <SolidColorBrush x:Key="TextMain"    Color="#F1FAFF"/>
+		<!-- ==================== ЦВЕТА НОВОГОДНЕЙ ТЕМЫ ==================== -->
+		<SolidColorBrush x:Key="BgDeep"     Color="#0B1E3A"/>
+		<!-- тёмно-синий фон -->
+		<SolidColorBrush x:Key="BgPanel"    Color="#122B4E"/>
+		<!-- панель -->
+		<SolidColorBrush x:Key="BgPanel2"   Color="#1A3A66"/>
+		<!-- панель светлее -->
+		<SolidColorBrush x:Key="AccentGold" Color="#FFD166"/>
+		<!-- золото -->
+		<SolidColorBrush x:Key="AccentGreen" Color="#2ECC71"/>
+		<!-- ёлочно-зелёный -->
+		<SolidColorBrush x:Key="AccentRed"  Color="#E63946"/>
+		<!-- красный -->
+		<SolidColorBrush x:Key="TextMain"   Color="#F1FAFF"/>
+		<SolidColorBrush x:Key="TextMuted"  Color="#9FB3C8"/>
 
-        <!-- Стиль ячейки-плитки поля (только для отображения, не кликабельна) -->
+
+		<!-- Стиль ячейки-плитки поля (только для отображения, не кликабельна) -->
         <Style x:Key="TileStyle" TargetType="Border">
             <Setter Property="Background" Value="{StaticResource BgPanel}"/>
             <Setter Property="CornerRadius" Value="10"/>
@@ -34,7 +44,61 @@
             <Setter Property="TextAlignment" Value="Center"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
-    </Window.Resources>
+		<!-- ==================== БАЗОВЫЙ СТИЛЬ КНОПОК ==================== -->
+		<Style x:Key="BaseButton" TargetType="Button">
+			<Setter Property="Foreground" Value="#0B1E3A"/>
+			<Setter Property="FontWeight" Value="Bold"/>
+			<Setter Property="FontSize" Value="13"/>
+			<Setter Property="Padding" Value="10,6"/>
+			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="BorderThickness" Value="0"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="Button">
+						<Border x:Name="bd"
+                        Background="{TemplateBinding Background}"
+                        CornerRadius="6"
+                        SnapsToDevicePixels="True">
+							<ContentPresenter HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Margin="{TemplateBinding Padding}"/>
+						</Border>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsMouseOver" Value="True">
+								<Setter TargetName="bd" Property="Opacity" Value="0.85"/>
+							</Trigger>
+							<Trigger Property="IsPressed" Value="True">
+								<Setter TargetName="bd" Property="Opacity" Value="0.7"/>
+							</Trigger>
+							<Trigger Property="IsEnabled" Value="False">
+								<Setter TargetName="bd" Property="Background" Value="#2C3E50"/>
+								<Setter Property="Foreground" Value="#566573"/>
+								<Setter Property="Cursor" Value="Arrow"/>
+							</Trigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+
+		<Style x:Key="GoldButton" TargetType="Button" BasedOn="{StaticResource BaseButton}">
+			<Setter Property="Background" Value="{StaticResource AccentGold}"/>
+		</Style>
+
+		<Style x:Key="GreenButton" TargetType="Button" BasedOn="{StaticResource BaseButton}">
+			<Setter Property="Background" Value="{StaticResource AccentGreen}"/>
+		</Style>
+
+		<Style x:Key="RedButton" TargetType="Button" BasedOn="{StaticResource BaseButton}">
+			<Setter Property="Background" Value="{StaticResource AccentRed}"/>
+			<Setter Property="Foreground" Value="White"/>
+		</Style>
+
+		<Style x:Key="BlueButton" TargetType="Button" BasedOn="{StaticResource BaseButton}">
+			<Setter Property="Background" Value="#3498DB"/>
+			<Setter Property="Foreground" Value="White"/>
+		</Style>
+	</Window.Resources>
 
     <Grid>
         <!-- =============== РЕЖИМ 1: ИГРОВОЕ ПОЛЕ =============== -->
@@ -134,14 +198,15 @@
 
 					<!-- Кнопка звука вопроса -->
 					<Button x:Name="AudioBtnQuestion"
-                    Grid.Row="1"
-                    Content="▶ ПРОСЛУШАТЬ"
-                    FontSize="16"
-                    Padding="16,8"
-                    Margin="0,16,0,0"
-                    HorizontalAlignment="Center"
-                    Click="AudioButton_Click"
-                    Visibility="Collapsed"/>
+                        Grid.Row="1"
+						Style="{StaticResource GreenButton}"
+                        Content="▶ ПРОСЛУШАТЬ"
+                        FontSize="16"
+                        Padding="16,8"
+                        Margin="0,16,0,0"
+                        HorizontalAlignment="Center"
+                        Click="AudioButton_Click"
+                        Visibility="Collapsed"/>
 
 
 				</Grid>
@@ -181,13 +246,14 @@
                        Visibility="Collapsed"/>
 
 					<Button x:Name="AudioBtnAnswer"
-                    Content="▶ ПРОСЛУШАТЬ"
-                    FontSize="14"
-                    Padding="12,6"
-                    Margin="0,10,0,0"
-                    HorizontalAlignment="Center"
-                    Click="AudioButton_Click"
-                    Visibility="Collapsed"/>
+						Style="{StaticResource GreenButton}"
+                        Content="▶ ПРОСЛУШАТЬ"
+                        FontSize="14"
+                        Padding="12,6"
+                        Margin="0,10,0,0"
+                        HorizontalAlignment="Center"
+                        Click="AudioButton_Click"
+                        Visibility="Collapsed"/>
 
 
 				</StackPanel>
