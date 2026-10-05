@@ -3,9 +3,11 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-
+using System.Windows.Media.Imaging;
+using System.IO;
 using SvoyaGame.Models;
 using Color = System.Windows.Media.Color;
+using Button = System.Windows.Controls.Button;
 
 namespace SvoyaGame.View.MainViews;
 
@@ -18,9 +20,11 @@ public partial class GameBoardWindow : Window
     private readonly List<Theme> _themes;
     private readonly int[] _prices;
     private readonly Dictionary<string, Border> _tiles = new();
+	private readonly MediaPlayer _mediaQuestion = new();
+	private readonly MediaPlayer _mediaAnswer = new();
 
 
-    public GameBoardWindow(List<Theme> themes, int[] prices)
+	public GameBoardWindow(List<Theme> themes, int[] prices)
     {
         InitializeComponent();
         _themes = themes;
@@ -107,89 +111,93 @@ public partial class GameBoardWindow : Window
         }
     }
 
-    // =====================================================================
-    // ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ
-    // =====================================================================
-    /// <summary>
-    /// Показать вопрос крупным планом. Ответ — скрыт до вызова ShowAnswer().
-    /// </summary>
-    public void ShowQuestion(string themeName, int price, string question, string answer)
-    {
-        HeaderTheme.Text = themeName;
-        HeaderPrice.Text = price.ToString();
-        QuestionText.Text = question;
-        AnswerText.Text = answer;
-        AnswerPanel.Visibility = Visibility.Collapsed;
+	// =====================================================================
+	// ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ
+	// =====================================================================
+	/// <summary>
+	/// Показать вопрос крупным планом. Ответ — скрыт до вызова ShowAnswer().
+	/// </summary>
+	public void ShowQuestion(string themeName, int price, ContentBlock question, ContentBlock answer)
+	{
+		HeaderTheme.Text = themeName;
+		HeaderPrice.Text = price.ToString();
 
-        QuestionView.Visibility = Visibility.Visible;
-        GridView.Visibility = Visibility.Collapsed;
-    }
+		FillBlock(ImgQuestion, QuestionText, AudioBtnQuestion, _mediaQuestion, question);
+		FillBlock(ImgAnswer, AnswerText, AudioBtnAnswer, _mediaAnswer, answer);
 
-    /// <summary>
-    /// Показать ответ на экране (вызывается админом отдельной кнопкой).
-    /// </summary>
-    public void ShowAnswer()
+		AnswerPanel.Visibility = Visibility.Collapsed;
+		QuestionView.Visibility = Visibility.Visible;
+		GridView.Visibility = Visibility.Collapsed;
+	}
+
+	/// <summary>
+	/// Показать ответ на экране (вызывается админом отдельной кнопкой).
+	/// </summary>
+	public void ShowAnswer()
     {
         if (QuestionView.Visibility == Visibility.Visible)
             AnswerPanel.Visibility = Visibility.Visible;
     }
 
-    /// <summary>
-    /// Вернуть табло к показу игрового поля.
-    /// </summary>
-    public void ShowGrid()
-    {
-        QuestionView.Visibility = Visibility.Collapsed;
-        GridView.Visibility = Visibility.Visible;
-        AnswerPanel.Visibility = Visibility.Collapsed;
-    }
+	/// <summary>
+	/// Вернуть табло к показу игрового поля.
+	/// </summary>
+	public void ShowGrid()
+	{
+		_mediaQuestion.Stop();
+		_mediaAnswer.Stop();
 
-    // =====================================================================
-    // ВТОРОЙ МОНИТОР
-    // =====================================================================
-    /// <summary>
-    /// Если в системе есть второй монитор — разворачиваем табло на нём
-    /// на весь экран. Иначе — открываем в оконном режиме по центру.
-    /// </summary>
-    private void MoveToSecondaryMonitorIfExists()
-    {
-        // Полное имя — чтобы не путать с System.Windows.Forms.Screen
-        var screens = System.Windows.Forms.Screen.AllScreens;
+		QuestionView.Visibility = Visibility.Collapsed;
+		GridView.Visibility = Visibility.Visible;
+		AnswerPanel.Visibility = Visibility.Collapsed;
+	}
 
-        if (screens.Length < 2)
-        {
-            WindowStartupLocation = WindowStartupLocation.CenterScreen;
-            Width = 1100;
-            Height = 680;
-            return;
-        }
+	// =====================================================================
+	// ВТОРОЙ МОНИТОР
+	// =====================================================================
+	/// <summary>
+	/// Если в системе есть второй монитор — разворачиваем табло на нём
+	/// на весь экран. Иначе — открываем в оконном режиме по центру.
+	/// </summary>
+	//private void MoveToSecondaryMonitorIfExists()
+	//   {
+	//       // Полное имя — чтобы не путать с System.Windows.Forms.Screen
+	//       var screens = System.Windows.Forms.Screen.AllScreens;
 
-        var secondary = screens[1];
-        var bounds = secondary.Bounds;
+	//       if (screens.Length < 2)
+	//       {
+	//           WindowStartupLocation = WindowStartupLocation.CenterScreen;
+	//           Width = 1100;
+	//           Height = 680;
+	//           return;
+	//       }
 
-        var source = PresentationSource.FromVisual(this);
-        double dpiX = 1.0, dpiY = 1.0;
-        if (source?.CompositionTarget != null)
-        {
-            var m = source.CompositionTarget.TransformToDevice;
-            dpiX = m.M11;
-            dpiY = m.M22;
-        }
+	//       var secondary = screens[1];
+	//       var bounds = secondary.Bounds;
 
-        Left = bounds.Left / dpiX;
-        Top = bounds.Top / dpiY;
-        Width = bounds.Width / dpiX;
-        Height = bounds.Height / dpiY;
+	//       var source = PresentationSource.FromVisual(this);
+	//       double dpiX = 1.0, dpiY = 1.0;
+	//       if (source?.CompositionTarget != null)
+	//       {
+	//           var m = source.CompositionTarget.TransformToDevice;
+	//           dpiX = m.M11;
+	//           dpiY = m.M22;
+	//       }
 
-        WindowStartupLocation = WindowStartupLocation.Manual;
-        WindowState = WindowState.Normal;
-        WindowStyle = WindowStyle.None;
-    }
+	//       Left = bounds.Left / dpiX;
+	//       Top = bounds.Top / dpiY;
+	//       Width = bounds.Width / dpiX;
+	//       Height = bounds.Height / dpiY;
 
-    // =====================================================================
-    // ХОТКЕИ
-    // =====================================================================
-    protected override void OnKeyDown(System.Windows.Input.KeyEventArgs e)
+	//       WindowStartupLocation = WindowStartupLocation.Manual;
+	//       WindowState = WindowState.Normal;
+	//       WindowStyle = WindowStyle.None;
+	//   }
+
+	// =====================================================================
+	// ХОТКЕИ
+	// =====================================================================
+	protected override void OnKeyDown(System.Windows.Input.KeyEventArgs e)
     {
         // ESC — вернуть сетку (удобно, если табло активно)
         if (e.Key == System.Windows.Input.Key.Escape)
@@ -197,4 +205,110 @@ public partial class GameBoardWindow : Window
 
         base.OnKeyDown(e);
     }
+
+	/// <summary>
+	/// Заполняет контейнер контентом: картинку, текст, кнопку звука.
+	/// Всё, чего нет — скрывается.
+	/// </summary>
+	private void FillBlock(
+	System.Windows.Controls.Image imgCtrl,
+	System.Windows.Controls.TextBlock txtCtrl,
+	System.Windows.Controls.Button audioBtn,
+	MediaPlayer media,
+	ContentBlock? block)
+	{
+		// --- Картинка --- (без изменений)
+		if (block?.HasImage == true)
+		{
+			var path = Services.QuestionsLoader.ResolveMediaPath(block.Image);
+			if (path != null && File.Exists(path))
+			{
+				try
+				{
+					var bmp = new BitmapImage();
+					bmp.BeginInit();
+					bmp.CacheOption = BitmapCacheOption.OnLoad;
+					bmp.UriSource = new Uri(path, UriKind.Absolute);
+					bmp.EndInit();
+					imgCtrl.Source = bmp;
+					imgCtrl.Visibility = Visibility.Visible;
+				}
+				catch
+				{
+					imgCtrl.Source = null;
+					imgCtrl.Visibility = Visibility.Collapsed;
+				}
+			}
+			else
+			{
+				imgCtrl.Source = null;
+				imgCtrl.Visibility = Visibility.Collapsed;
+			}
+		}
+		else
+		{
+			imgCtrl.Source = null;
+			imgCtrl.Visibility = Visibility.Collapsed;
+		}
+
+		// --- Текст --- (без изменений)
+		if (block?.HasText == true)
+		{
+			txtCtrl.Text = block.Text!;
+			txtCtrl.Visibility = Visibility.Visible;
+		}
+		else
+		{
+			txtCtrl.Text = "";
+			txtCtrl.Visibility = Visibility.Collapsed;
+		}
+
+		// --- Звук ---
+		media.Stop();
+		media.Close();
+
+		if (block?.HasAudio == true)
+		{
+			var audioPath = Services.QuestionsLoader.ResolveMediaPath(block.Audio);
+			if (audioPath != null && File.Exists(audioPath))
+			{
+				try
+				{
+					media.Open(new Uri(audioPath, UriKind.Absolute));
+					audioBtn.Visibility = Visibility.Visible;
+					return;
+				}
+				catch
+				{
+					// упали — прячем кнопку
+				}
+			}
+		}
+		audioBtn.Visibility = Visibility.Collapsed;
+	}
+
+	private void AudioButton_Click(object sender, RoutedEventArgs e)
+	{
+		if (sender is not Button btn)
+			return;
+
+		// Определяем, чья кнопка нажата
+		MediaPlayer? player = null;
+		if (btn == AudioBtnQuestion)
+			player = _mediaQuestion;
+		else if (btn == AudioBtnAnswer)
+			player = _mediaAnswer;
+
+		if (player is null)
+			return;
+
+		player.Position = TimeSpan.Zero;
+		player.Play();
+	}
+	protected override void OnClosed(EventArgs e)
+	{
+		_mediaQuestion.Close();
+		_mediaAnswer.Close();
+		base.OnClosed(e);
+	}
 }

@@ -396,46 +396,110 @@
         <!-- ===================================================== -->
         <!-- ПРАВАЯ ПАНЕЛЬ — ИГРОВОЕ ПОЛЕ                           -->
         <!-- ===================================================== -->
-        <Grid Grid.Column="1">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
+		<Grid Grid.Column="1">
+			<Grid.RowDefinitions>
+				<RowDefinition Height="*"/>
+				<!-- игровое поле -->
+				<RowDefinition Height="Auto"/>
+				<!-- панель ответа для админа -->
+				<RowDefinition Height="Auto"/>
+				<!-- кнопка "Открыть табло" -->
+			</Grid.RowDefinitions>
 
-            <Border Grid.Row="0"
-                    Background="{StaticResource BgPanel}"
-                    CornerRadius="10"
-                    Padding="14">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
+			<!-- Игровое поле (было) -->
+			<Border Grid.Row="0"
+            Background="{StaticResource BgPanel}"
+            CornerRadius="10"
+            Padding="14">
+				<Grid>
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+					</Grid.RowDefinitions>
 
-                    <TextBlock Grid.Row="0"
-                               Text="🎁 ИГРОВОЕ ПОЛЕ"
-                               Foreground="{StaticResource AccentGold}"
-                               FontSize="16"
-                               FontWeight="Bold"
-                               HorizontalAlignment="Center"
-                               Margin="0,0,0,12"/>
+					<TextBlock Grid.Row="0"
+                       Text="❅ ИГРОВОЕ ПОЛЕ"
+                       Foreground="{StaticResource AccentGold}"
+                       FontSize="16"
+                       FontWeight="Bold"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,12"/>
 
-                    <!-- Сетка 5 строк × 6 колонок -->
-                    <UniformGrid x:Name="GameGrid"
-                                 Grid.Row="1"
-                                 Rows="5"
-                                 Columns="6"/>
-                </Grid>
-            </Border>
+					<UniformGrid x:Name="GameGrid"
+                         Grid.Row="1"
+                         Rows="5"
+                         Columns="6"/>
+				</Grid>
+			</Border>
 
-            <Button x:Name="BtnOpenBoard"
-                    Grid.Row="1"
-                    Style="{StaticResource BlueButton}"
-                    Content="🖥 ОТКРЫТЬ ТАБЛО ДЛЯ ЗАЛА"
-                    Click="BtnOpenBoard_Click"
-                    Height="44"
-                    Margin="0,12,0,0"
-                    FontSize="14"/>
-        </Grid>
-    </Grid>
+			<!-- Панель ответа для админа -->
+			<Border x:Name="AdminAnswerPanel"
+            Grid.Row="1"
+            Background="#0F2544"
+            BorderBrush="{StaticResource AccentGold}"
+            BorderThickness="2"
+            CornerRadius="10"
+            Padding="14"
+            Margin="0,12,0,0"
+            Visibility="Collapsed">
+				<StackPanel>
+					<TextBlock Text="🎯 ОТВЕТ ДЛЯ АДМИНА"
+                       Foreground="{StaticResource AccentGold}"
+                       FontSize="14"
+                       FontWeight="Bold"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,6"/>
+
+					<TextBlock x:Name="AdminQuestionMeta"
+                       Text=""
+                       Foreground="#9FB3C8"
+                       FontSize="12"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,10"/>
+
+					<Image x:Name="AdminAnswerImage"
+                   MaxHeight="120"
+                   Margin="0,0,0,8"
+                   Stretch="Uniform"
+                   HorizontalAlignment="Center"
+                   Visibility="Collapsed"/>
+
+					<TextBlock x:Name="AdminAnswerText"
+                       Text=""
+                       Foreground="{StaticResource AccentGreen}"
+                       FontSize="18"
+                       FontWeight="Bold"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center"
+                       HorizontalAlignment="Center"
+                       Visibility="Collapsed"/>
+
+					<Button x:Name="AdminAnswerAudioBtn"
+                    Style="{StaticResource GreenButton}"
+                    Content="▶ ПРОСЛУШАТЬ ОТВЕТ"
+                    FontSize="12"
+                    Padding="10,5"
+                    Margin="0,10,0,0"
+                    HorizontalAlignment="Center"
+                    Click="AdminAnswerAudio_Click"
+                    Visibility="Collapsed"/>
+
+					<MediaElement x:Name="AdminAnswerMedia"
+                          Visibility="Collapsed"
+                          LoadedBehavior="Manual"
+                          UnloadedBehavior="Manual"/>
+				</StackPanel>
+			</Border>
+
+			<!-- Кнопка "Открыть табло" -->
+			<Button x:Name="BtnOpenBoard"
+            Grid.Row="2"
+            Style="{StaticResource BlueButton}"
+            Content="▶ ОТКРЫТЬ ТАБЛО ДЛЯ ЗАЛА"
+            Click="BtnOpenBoard_Click"
+            Height="44"
+            Margin="0,12,0,0"
+            FontSize="14"/>
+		</Grid>
+	</Grid>
 </Window>

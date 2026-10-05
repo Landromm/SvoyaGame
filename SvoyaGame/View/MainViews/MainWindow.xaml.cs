@@ -1,15 +1,17 @@
-﻿using System;
+﻿using SocketIOClient;
+using SvoyaGame.Models;
+using SvoyaGame.Services;
+using SvoyaGame.View.MainViews;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using SocketIOClient;
-using SvoyaGame.Models;
-using SvoyaGame.Services;
-using SvoyaGame.View.MainViews;
+using System.Windows.Media.Imaging;
 using Brush = System.Windows.Media.Brush;
 using Button = System.Windows.Controls.Button;
 using Color = System.Windows.Media.Color;
@@ -25,7 +27,8 @@ public partial class MainWindow : Window
     private readonly ObservableCollection<PlayerRow> _players = new();
     private readonly List<Theme> _themes;
     private readonly HashSet<string> _usedCells = new(); // "Тема|Цена"
-    private string? _currentRoom;
+	private readonly MediaPlayer _adminAnswerMedia = new();
+	private string? _currentRoom;
     private GameBoardWindow? _boardWindow;
 
     // Хранит ссылки на кнопки ячеек: ключ = "тема|цена"
@@ -37,7 +40,30 @@ public partial class MainWindow : Window
 
         // ---- Загрузка вопросов ----
         _themes = QuestionsLoader.TryLoad(out var loadError) ?? new List<Theme>();
-        if (loadError != null)
+
+
+		//// ВРЕМЕННО — для проверки парсера
+  //      var sb = new System.Text.StringBuilder();
+		//sb.AppendLine($"Тем: {_themes.Count}");
+		//foreach (var t in _themes)
+		//{
+		//	sb.AppendLine($"— {t.Name}");
+		//	foreach (var price in new[] { 100, 200, 400, 700, 1000 })
+		//	{
+		//		var q = t.GetQuestion(price);
+		//		if (q == null)
+		//		{ sb.AppendLine($"   {price}: <нет>"); continue; }
+
+		//		var qText = q.Question?.Text ?? "<нет текста>";
+		//		var qImg = q.Question?.Image ?? "-";
+		//		var qAud = q.Question?.Audio ?? "-";
+		//		var aText = q.Answer?.Text ?? "<нет текста>";
+		//		sb.AppendLine($"   {price}: Q=\"{qText}\" img={qImg} aud={qAud} | A=\"{aText}\"");
+		//	}
+		//}
+		//MessageBox.Show(sb.ToString(), "Содержимое questions.json");
+
+		if (loadError != null)
         {
             MessageBox.Show($"Не удалось загрузить questions.json:\n{loadError}",
                 "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -190,8 +216,14 @@ public partial class MainWindow : Window
         _usedCells.Add($"{theme.Name}|{price}");
 
         ShowBoardWindow();
-        _boardWindow!.ShowQuestion(theme.Name, price, q.Text, q.Answer);
-        _boardWindow!.MarkCellUsed(theme.Name, price);
+		_boardWindow!.ShowQuestion(
+			theme.Name,
+			price,
+			q.Question ?? new ContentBlock(),
+			q.Answer ?? new ContentBlock());
+
+		ShowAdminAnswer(theme.Name, price, q.Answer);
+		_boardWindow!.MarkCellUsed(theme.Name, price);
 
         // Подставляем цену во все строки таблицы игроков
         foreach (var player in _players)
@@ -201,6 +233,8 @@ public partial class MainWindow : Window
         BtnShowAnswer.IsEnabled = true;
         BtnHideQuestion.IsEnabled = true;
     }
+
+
 
     // =====================================================================
     // ОКНО ТАБЛО
@@ -365,16 +399,111 @@ public partial class MainWindow : Window
         BtnShowAnswer.IsEnabled = false;
     }
 
-    private void BtnHideQuestion_Click(object sender, RoutedEventArgs e)
-    {
-        _boardWindow?.ShowGrid();
-        BtnShowAnswer.IsEnabled = false;
-        BtnHideQuestion.IsEnabled = false;
+	private void BtnHideQuestion_Click(object sender, RoutedEventArgs e)
+	{
+		_boardWindow?.ShowGrid();
+		BtnShowAnswer.IsEnabled = false;
+		BtnHideQuestion.IsEnabled = false;
 
-        // Опционально: вернуть дефолт 100
-        // foreach (var player in _players)
-        //     player.BetInput = "100";
-    }
+		AdminAnswerPanel.Visibility = Visibility.Collapsed;
+		_adminAnswerMedia.Stop();
+	}
+
+	private void ShowAdminAnswer(string themeName, int price, ContentBlock? answer)
+	{
+		AdminQuestionMeta.Text = $"{themeName} • {price}";
+
+		// Текст
+		if (answer?.HasText == true)
+		{
+			AdminAnswerText.Text = answer.Text!;
+			AdminAnswerText.Visibility = Visibility.Visible;
+		}
+		else
+		{
+			AdminAnswerText.Text = "";
+			AdminAnswerText.Visibility = Visibility.Collapsed;
+		}
+
+		// Картинка
+		if (answer?.HasImage == true)
+		{
+			var path = Services.QuestionsLoader.ResolveMediaPath(answer.Image);
+			if (path != null && File.Exists(path))
+			{
+				try
+				{
+					var bmp = new BitmapImage();
+					bmp.BeginInit();
+					bmp.CacheOption = BitmapCacheOption.OnLoad;
+					bmp.UriSource = new Uri(path, UriKind.Absolute);
+					bmp.EndInit();
+					AdminAnswerImage.Source = bmp;
+					AdminAnswerImage.Visibility = Visibility.Visible;
+				}
+				catch
+				{
+					AdminAnswerImage.Source = null;
+					AdminAnswerImage.Visibility = Visibility.Collapsed;
+				}
+			}
+			else
+			{
+				AdminAnswerImage.Source = null;
+				AdminAnswerImage.Visibility = Visibility.Collapsed;
+			}
+		}
+		else
+		{
+			AdminAnswerImage.Source = null;
+			AdminAnswerImage.Visibility = Visibility.Collapsed;
+		}
+
+		// --- Звук ---
+		_adminAnswerMedia.Stop();
+		_adminAnswerMedia.Close();
+
+		if (answer?.HasAudio == true)
+		{
+			var audioPath = Services.QuestionsLoader.ResolveMediaPath(answer.Audio);
+			if (audioPath != null && File.Exists(audioPath))
+			{
+				try
+				{
+					_adminAnswerMedia.Open(new Uri(audioPath, UriKind.Absolute));
+					AdminAnswerAudioBtn.Visibility = Visibility.Visible;
+				}
+				catch
+				{
+					AdminAnswerAudioBtn.Visibility = Visibility.Collapsed;
+				}
+			}
+			else
+			{
+				AdminAnswerAudioBtn.Visibility = Visibility.Collapsed;
+			}
+		}
+		else
+		{
+			AdminAnswerAudioBtn.Visibility = Visibility.Collapsed;
+		}
+
+		AdminAnswerPanel.Visibility = Visibility.Visible;
+	}
+
+	private void AdminAnswerAudio_Click(object sender, RoutedEventArgs e)
+	{
+		if (_adminAnswerMedia.Source is null)
+			return;
+		_adminAnswerMedia.Position = TimeSpan.Zero;
+		_adminAnswerMedia.Play();
+	}
+
+	protected override void OnClosed(EventArgs e)
+	{
+		_adminAnswerMedia.Close();
+		base.OnClosed(e);
+	}
 }
 
 /// <summary>

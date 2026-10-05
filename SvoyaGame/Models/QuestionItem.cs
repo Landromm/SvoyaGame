@@ -1,21 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
-namespace SvoyaGame.Models
+namespace SvoyaGame.Models;
+
+/// <summary>
+/// Вопрос и ответ. Оба — ContentBlock (текст + опционально картинка/звук).
+/// </summary>
+public class QuestionItem
 {
-    /// <summary>
-    /// Один вопрос с ответом.
-    /// </summary>
-    public class QuestionItem
-    {
-        [JsonPropertyName("question")]
-        public string Text { get; set; } = string.Empty;
+	[JsonPropertyName("question")]
+	public ContentBlock? Question { get; set; }
 
-        [JsonPropertyName("answer")]
-        public string Answer { get; set; } = string.Empty;
-    }
+	[JsonPropertyName("answer")]
+	public ContentBlock? Answer { get; set; }
+
+	public bool HasQuestion => Question != null && !Question.IsEmpty;
+	public bool HasAnswer => Answer != null && !Answer.IsEmpty;
 }

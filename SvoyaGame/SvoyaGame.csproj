@@ -22,7 +22,6 @@
 
   <ItemGroup>
     <Folder Include="Styles\CustomControls\" />
-    <Folder Include="media\" />
   </ItemGroup>
 
   <ItemGroup>
@@ -44,20 +43,34 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="buzz.wav">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="index.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="questions.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="server.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
   </ItemGroup>
 
-	<ItemGroup>
-		<None Update="questions.json">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
-	</ItemGroup>
-
   <ItemGroup>
-    <Content Include="media\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="questions.json.old">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+
+    <!-- Копируем папку media рядом с .exe при сборке.
+       Если папки ещё нет — эта строка просто не сработает, ничего не сломает. -->
+    <Content Include="media\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>
