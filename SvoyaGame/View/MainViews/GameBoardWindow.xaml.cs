@@ -27,7 +27,7 @@ public partial class GameBoardWindow : Window
         _prices = prices;
 
         BuildBoard();
-        MoveToSecondaryMonitorIfExists();
+        //MoveToSecondaryMonitorIfExists();
     }
 
     // =====================================================================

@@ -7,8 +7,6 @@
         Title="Табло для зала"
         Height="720" Width="1280"
         WindowStartupLocation="Manual"
-        WindowStyle="None"
-        ResizeMode="NoResize"
         Background="#0B1E3A">
 
     <Window.Resources>

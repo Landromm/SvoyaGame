@@ -10,9 +10,19 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Resources\" />
-    <Folder Include="Communication\" />
+    <Compile Remove="Communication\**" />
+    <Compile Remove="Resources\**" />
+    <EmbeddedResource Remove="Communication\**" />
+    <EmbeddedResource Remove="Resources\**" />
+    <None Remove="Communication\**" />
+    <None Remove="Resources\**" />
+    <Page Remove="Communication\**" />
+    <Page Remove="Resources\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="Styles\CustomControls\" />
+    <Folder Include="media\" />
   </ItemGroup>
 
   <ItemGroup>
@@ -45,5 +55,9 @@
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>
+
+  <ItemGroup>
+    <Content Include="media\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 
 </Project>
