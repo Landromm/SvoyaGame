@@ -25,8 +25,8 @@ public partial class MainWindow : Window
 
     private readonly SocketIOClient.SocketIO _client;
     private readonly ObservableCollection<PlayerRow> _players = new();
-    private readonly List<Theme> _themes;
-    private readonly HashSet<string> _usedCells = new(); // "Тема|Цена"
+	private List<Theme> _themes;
+	private readonly HashSet<string> _usedCells = new(); // "Тема|Цена"
 	private readonly MediaPlayer _adminAnswerMedia = new();
 	private string? _currentRoom;
     private GameBoardWindow? _boardWindow;
@@ -497,6 +497,48 @@ public partial class MainWindow : Window
 			return;
 		_adminAnswerMedia.Position = TimeSpan.Zero;
 		_adminAnswerMedia.Play();
+	}
+	private void BtnEditThemes_Click(object sender, RoutedEventArgs e)
+	{
+		// Предупреждение — редактирование сбрасывает текущее поле
+		var confirm = MessageBox.Show(
+			"Изменения тем вступят в силу сразу и сбросят текущее игровое поле.\nПродолжить?",
+			"Редактор вопросов",
+			MessageBoxButton.YesNo, MessageBoxImage.Question);
+		if (confirm != MessageBoxResult.Yes)
+			return;
+
+		var editor = new ThemeEditorWindow { Owner = this };
+		var result = editor.ShowDialog();
+
+		if (result != true)
+			return;
+
+		// Перезагрузка из файла
+		var reloaded = QuestionsLoader.TryLoad(out var err);
+		if (reloaded == null)
+		{
+			MessageBox.Show($"Не удалось перезагрузить вопросы:\n{err}",
+				"Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+			return;
+		}
+
+		_themes = reloaded;
+
+		// Пересборка поля и сброс состояния
+		BuildGameGrid();
+
+		// Табло держит старый список — пересоздадим его, если открыто
+		if (_boardWindow != null && _boardWindow.IsLoaded)
+		{
+			_boardWindow.Close();
+			_boardWindow = null;
+		}
+
+		// Скрыть панель ответа для админа, если была открыта
+		AdminAnswerPanel.Visibility = Visibility.Collapsed;
+		BtnShowAnswer.IsEnabled = false;
+		BtnHideQuestion.IsEnabled = false;
 	}
 
 	protected override void OnClosed(EventArgs e)

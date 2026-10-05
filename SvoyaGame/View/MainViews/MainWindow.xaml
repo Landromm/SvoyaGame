@@ -404,6 +404,8 @@
 				<!-- панель ответа для админа -->
 				<RowDefinition Height="Auto"/>
 				<!-- кнопка "Открыть табло" -->
+				<RowDefinition Height="Auto"/>
+				<!-- Редактор вопросов -->
 			</Grid.RowDefinitions>
 
 			<!-- Игровое поле (было) -->
@@ -475,14 +477,14 @@
                        Visibility="Collapsed"/>
 
 					<Button x:Name="AdminAnswerAudioBtn"
-                    Style="{StaticResource GreenButton}"
-                    Content="▶ ПРОСЛУШАТЬ ОТВЕТ"
-                    FontSize="12"
-                    Padding="10,5"
-                    Margin="0,10,0,0"
-                    HorizontalAlignment="Center"
-                    Click="AdminAnswerAudio_Click"
-                    Visibility="Collapsed"/>
+                        Style="{StaticResource GreenButton}"
+                        Content="▶ ПРОСЛУШАТЬ ОТВЕТ"
+                        FontSize="12"
+                        Padding="10,5"
+                        Margin="0,10,0,0"
+                        HorizontalAlignment="Center"
+                        Click="AdminAnswerAudio_Click"
+                        Visibility="Collapsed"/>
 
 					<MediaElement x:Name="AdminAnswerMedia"
                           Visibility="Collapsed"
@@ -493,13 +495,22 @@
 
 			<!-- Кнопка "Открыть табло" -->
 			<Button x:Name="BtnOpenBoard"
-            Grid.Row="2"
-            Style="{StaticResource BlueButton}"
-            Content="▶ ОТКРЫТЬ ТАБЛО ДЛЯ ЗАЛА"
-            Click="BtnOpenBoard_Click"
-            Height="44"
-            Margin="0,12,0,0"
-            FontSize="14"/>
+                Grid.Row="2"
+                Style="{StaticResource BlueButton}"
+                Content="▶ ОТКРЫТЬ ТАБЛО ДЛЯ ЗАЛА"
+                Click="BtnOpenBoard_Click"
+                Height="44"
+                Margin="0,12,0,0"
+                FontSize="14"/>
+
+			<Button x:Name="BtnEditThemes"
+                Grid.Row="3"
+                Style="{StaticResource GoldButton}"
+                Content="✎ РЕДАКТОР ВОПРОСОВ"
+                Click="BtnEditThemes_Click"
+                Height="38"
+                Margin="0,8,0,0"
+                FontSize="13"/>
 		</Grid>
 	</Grid>
 </Window>
