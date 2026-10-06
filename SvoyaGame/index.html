@@ -321,19 +321,14 @@ function unlockAudio() {
             // --------------------------------------------------------
             // Победитель зафиксирован
             // --------------------------------------------------------
-            socket.on("onWinnerDetected", (winnerName) => {
-                const buzzer = document.getElementById('buzzer');
-                buzzer.disabled = true;
-
-                const status = document.getElementById('status');
-                if (winnerName === playerName) {
-                    status.innerHTML = "🥇 ВЫ ПЕРВЫЙ!";
-                    status.className = "win";
-                } else {
-                    status.innerHTML = `Победил: ${winnerName}`;
-                    status.className = "lose";
-                }
-            });
+			socket.on("onWinnerDetected", (winnerName) => {
+				// Просто информация — кнопку НЕ блокируем, пока топ-3 не заполнен.
+				// Реальное обновление статуса и блокировка идут в onTopClicksUpdated.
+				if (winnerName === playerName) {
+					// Первый — но и остальные ещё могут дожать
+					// (статус перезапишется в onTopClicksUpdated следом)
+				}
+			});
 
             // --------------------------------------------------------
             // Сброс раунда
@@ -346,6 +341,59 @@ function unlockAudio() {
                 status.innerText = "Кнопка активна! Приготовьтесь...";
                 status.className = "";
             });
+
+			socket.on("onTopClicksUpdated", (top) => {
+				if (!Array.isArray(top)) return;
+
+				const buzzer = document.getElementById('buzzer');
+				const status = document.getElementById('status');
+
+				// Топ пустой — сбрасываем кнопку, оставляем предыдущий статус
+				// (например, "Кнопка активна!" после сброса раунда)
+				if (top.length === 0) {
+					buzzer.disabled = false;
+					return;
+				}
+
+				const names = top.join(" → ");
+				const myPos = top.indexOf(playerName); // -1 если меня нет в списке
+
+				// --- Топ-3 заполнен — блокируем для всех ---
+				if (top.length >= 3) {
+					buzzer.disabled = true;
+
+					if (myPos === 0) {
+						status.innerHTML = `🥇 Вы первый! ТОП-3: ${names}`;
+						status.className = "win";
+					} else if (myPos > 0) {
+						status.innerHTML = `Вы #${myPos + 1}. ТОП-3: ${names}`;
+						status.className = "win";
+					} else {
+						status.innerHTML = `🔒 ТОП-3: ${names}`;
+						status.className = "lose";
+					}
+					return;
+				}
+
+				// --- Топ ещё не заполнен ---
+				if (myPos >= 0) {
+					// Я уже нажал — моя кнопка блокируется, жду остальных
+					buzzer.disabled = true;
+
+					if (myPos === 0) {
+						status.innerHTML = `🥇 Вы первый! Ожидайте остальных. (${names})`;
+						status.className = "win";
+					} else {
+						status.innerHTML = `Вы #${myPos + 1}. Ожидайте. (${names})`;
+						status.className = "win";
+					}
+				} else {
+					// Я ещё не нажимал — кнопка активна
+					buzzer.disabled = false;
+					status.innerHTML = `Уже нажали: ${names}`;
+					status.className = "";
+				}
+			});
 
             // --------------------------------------------------------
             // Личный счёт игрока

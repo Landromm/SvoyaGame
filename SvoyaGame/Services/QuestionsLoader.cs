@@ -105,4 +105,38 @@ public static class QuestionsLoader
 			? normalized
 			: Path.Combine(AppContext.BaseDirectory, normalized);
 	}
+
+	/// <summary>
+	/// Возвращает список предупреждений: какие файлы из media/ не найдены.
+	/// Возвращает пустой список, если всё хорошо.
+	/// </summary>
+	public static List<string> ValidateMedia(List<Theme> themes)
+	{
+		var problems = new List<string>();
+
+		foreach (var theme in themes)
+		{
+			foreach (var kv in theme.Questions)
+			{
+				var q = kv.Value;
+				if (q?.Question?.HasImage == true)
+					CheckMediaFile(q.Question.Image, theme.Name, kv.Key, "вопрос", "картинка", problems);
+				if (q?.Question?.HasAudio == true)
+					CheckMediaFile(q.Question.Audio, theme.Name, kv.Key, "вопрос", "звук", problems);
+				if (q?.Answer?.HasImage == true)
+					CheckMediaFile(q.Answer.Image, theme.Name, kv.Key, "ответ", "картинка", problems);
+				if (q?.Answer?.HasAudio == true)
+					CheckMediaFile(q.Answer.Audio, theme.Name, kv.Key, "ответ", "звук", problems);
+			}
+		}
+
+		return problems;
+	}
+
+	private static void CheckMediaFile(string? relPath, string theme, string price, string where, string what, List<string> problems)
+	{
+		var abs = ResolveMediaPath(relPath);
+		if (abs == null || !File.Exists(abs))
+			problems.Add($"«{theme}» • {price} • {where}: {what} не найден ({relPath})");
+	}
 }

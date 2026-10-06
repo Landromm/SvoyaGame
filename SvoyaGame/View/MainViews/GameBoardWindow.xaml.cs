@@ -8,6 +8,7 @@ using System.IO;
 using SvoyaGame.Models;
 using Color = System.Windows.Media.Color;
 using Button = System.Windows.Controls.Button;
+using Brush = System.Windows.Media.Brush;
 
 namespace SvoyaGame.View.MainViews;
 
@@ -211,13 +212,14 @@ public partial class GameBoardWindow : Window
 	/// Всё, чего нет — скрывается.
 	/// </summary>
 	private void FillBlock(
-	System.Windows.Controls.Image imgCtrl,
-	System.Windows.Controls.TextBlock txtCtrl,
-	System.Windows.Controls.Button audioBtn,
-	MediaPlayer media,
-	ContentBlock? block)
+		System.Windows.Controls.Image imgCtrl,
+		System.Windows.Controls.TextBlock txtCtrl,
+		System.Windows.Controls.Button audioBtn,
+		MediaPlayer media,
+		ContentBlock? block)
 	{
-		// --- Картинка --- (без изменений)
+		// --- Картинка ---
+		bool imageOk = false;
 		if (block?.HasImage == true)
 		{
 			var path = Services.QuestionsLoader.ResolveMediaPath(block.Image);
@@ -232,6 +234,7 @@ public partial class GameBoardWindow : Window
 					bmp.EndInit();
 					imgCtrl.Source = bmp;
 					imgCtrl.Visibility = Visibility.Visible;
+					imageOk = true;
 				}
 				catch
 				{
@@ -251,10 +254,18 @@ public partial class GameBoardWindow : Window
 			imgCtrl.Visibility = Visibility.Collapsed;
 		}
 
-		// --- Текст --- (без изменений)
+		// --- Текст ---
 		if (block?.HasText == true)
 		{
 			txtCtrl.Text = block.Text!;
+			txtCtrl.Foreground = (Brush)FindResource("TextMain");
+			txtCtrl.Visibility = Visibility.Visible;
+		}
+		else if (block?.HasImage == true && !imageOk)
+		{
+			// Картинка не найдена и текста нет — покажем заглушку
+			txtCtrl.Text = "[изображение не найдено]";
+			txtCtrl.Foreground = new SolidColorBrush(Color.FromRgb(0x9F, 0xB3, 0xC8));
 			txtCtrl.Visibility = Visibility.Visible;
 		}
 		else
@@ -263,7 +274,7 @@ public partial class GameBoardWindow : Window
 			txtCtrl.Visibility = Visibility.Collapsed;
 		}
 
-		// --- Звук ---
+		// --- Звук --- (без изменений)
 		media.Stop();
 		media.Close();
 
@@ -278,10 +289,7 @@ public partial class GameBoardWindow : Window
 					audioBtn.Visibility = Visibility.Visible;
 					return;
 				}
-				catch
-				{
-					// упали — прячем кнопку
-				}
+				catch { /* ignore */ }
 			}
 		}
 		audioBtn.Visibility = Visibility.Collapsed;

@@ -69,8 +69,10 @@ public partial class MainWindow : Window
                 "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
 
-        // ---- Привязки ----
-        GridPlayers.ItemsSource = _players;
+		CheckMediaOrWarn();
+
+		// ---- Привязки ----
+		GridPlayers.ItemsSource = _players;
 
         // ---- Построение игрового поля ----
         BuildGameGrid();
@@ -524,6 +526,7 @@ public partial class MainWindow : Window
 		}
 
 		_themes = reloaded;
+		CheckMediaOrWarn();
 
 		// Пересборка поля и сброс состояния
 		BuildGameGrid();
@@ -539,6 +542,32 @@ public partial class MainWindow : Window
 		AdminAnswerPanel.Visibility = Visibility.Collapsed;
 		BtnShowAnswer.IsEnabled = false;
 		BtnHideQuestion.IsEnabled = false;
+	}
+
+	/// <summary>
+	/// Проверяет вопросы на отсутствующие медиа-файлы.
+	/// Показывает предупреждение, если что-то не найдено.
+	/// </summary>
+	private void CheckMediaOrWarn()
+	{
+		var problems = QuestionsLoader.ValidateMedia(_themes);
+		if (problems.Count == 0)
+			return;
+
+		// Ограничим вывод, чтобы окно не растянулось на 100 строк
+		const int maxShow = 12;
+		var shown = problems.Take(maxShow).ToList();
+		var text = new System.Text.StringBuilder();
+		text.AppendLine($"Не найдено медиа-файлов: {problems.Count}");
+		text.AppendLine();
+		foreach (var p in shown)
+			text.AppendLine("• " + p);
+		if (problems.Count > maxShow)
+			text.AppendLine($"…и ещё {problems.Count - maxShow}.");
+
+		MessageBox.Show(text.ToString(),
+			"Отсутствующие файлы",
+			MessageBoxButton.OK, MessageBoxImage.Warning);
 	}
 
 	protected override void OnClosed(EventArgs e)

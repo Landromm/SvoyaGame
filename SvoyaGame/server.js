@@ -170,6 +170,9 @@ io.on("connection", (socket) => {
         if (room.winner) {
             socket.emit("onWinnerDetected", room.winner);
         }
+        if (room.topClicks.length > 0) {
+            socket.emit("onTopClicksUpdated", room.topClicks);
+        }
 
         // Отправляем текущий счёт лично игроку, чтобы он видел свои очки
         const myInfo = room.players.get(playerName);
@@ -184,21 +187,24 @@ io.on("connection", (socket) => {
         const room = activeRooms.get(roomNumber);
         if (!room) return;
 
-        // Если первый ещё не зафиксирован — фиксируем
+        // Топ-3 уже заполнен — нажатие игнорируем
+        if (room.topClicks.length >= 3) return;
+
+        // Дубликат — игрок уже в топе, повторный клик игнорируем
+        if (room.topClicks.includes(playerName)) return;
+
+        // Первый клик — фиксируем победителя (для админа и статуса)
         if (room.winner === null) {
             room.winner = playerName;
             console.log(`В комнате ${roomNumber} первый: ${playerName}`);
             io.to(roomNumber).emit("onWinnerDetected", playerName);
         }
 
-        // Обновляем топ-3 (без дубликатов, максимум 3)
-        if (!room.topClicks.includes(playerName)) {
-            room.topClicks.push(playerName);
-            if (room.topClicks.length > 3) room.topClicks.length = 3;
+        room.topClicks.push(playerName);
+        console.log(`ТОП нажатий в комнате ${roomNumber}: ${room.topClicks.join(", ")}`);
 
-            console.log(`ТОП нажатий в комнате ${roomNumber}: ${room.topClicks.join(", ")}`);
-            broadcastTopClicks(roomNumber, room);
-        }
+        // Рассылаем обновление топ-3 всем в комнате
+        broadcastTopClicks(roomNumber, room);
     });
 
     // --------------------------------------------------------

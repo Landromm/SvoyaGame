@@ -30,6 +30,7 @@ public partial class ThemeEditorWindow : Window
 
 	private Theme? _selectedTheme;
 	private bool _loadingUi;
+	private bool _isDirty;
 
 	public ThemeEditorWindow()
 	{
@@ -270,6 +271,10 @@ public partial class ThemeEditorWindow : Window
 		btnPlayAud.Click += (_, _) => PlayAudio(ctrl);
 		btnClearAud.Click += (_, _) => ClearAudio(ctrl);
 
+		ctrl.Text.TextChanged += (_, _) => { if (!_loadingUi) _isDirty = true; };
+		ctrl.ImagePath.TextChanged += (_, _) => { if (!_loadingUi) _isDirty = true; };
+		ctrl.AudioPath.TextChanged += (_, _) => { if (!_loadingUi) _isDirty = true; };
+
 		return ctrl;
 	}
 
@@ -462,6 +467,7 @@ public partial class ThemeEditorWindow : Window
 		int idx = ThemesList.SelectedIndex;
 		ThemesList.Items.Refresh();
 		ThemesList.SelectedIndex = idx;
+		_isDirty = true;
 	}
 
 	// =====================================================================
@@ -483,6 +489,7 @@ public partial class ThemeEditorWindow : Window
 
 		_themes.Add(t);
 		ThemesList.SelectedItem = t;
+		_isDirty = true;
 	}
 
 	private void BtnRemoveTheme_Click(object sender, RoutedEventArgs e)
@@ -509,6 +516,7 @@ public partial class ThemeEditorWindow : Window
 
 		_selectedTheme = null;
 		ThemesList.SelectedIndex = Math.Max(0, idx - 1);
+		_isDirty = true;
 	}
 
 	// =====================================================================
@@ -538,6 +546,7 @@ public partial class ThemeEditorWindow : Window
 		try
 		{
 			QuestionsLoader.Save(_themes.ToList());
+			_isDirty = false;
 			DialogResult = true;
 			Close();
 		}
@@ -546,6 +555,7 @@ public partial class ThemeEditorWindow : Window
 			MessageBox.Show($"Не удалось сохранить вопросы:\n{ex.Message}",
 				"Ошибка сохранения", MessageBoxButton.OK, MessageBoxImage.Error);
 		}
+
 	}
 
 	/// <summary>
@@ -574,14 +584,7 @@ public partial class ThemeEditorWindow : Window
 
 	private void BtnCancel_Click(object sender, RoutedEventArgs e)
 	{
-		var confirm = MessageBox.Show(
-			"Отменить изменения и выйти без сохранения?",
-			"Подтверждение",
-			MessageBoxButton.YesNo, MessageBoxImage.Question);
-		if (confirm != MessageBoxResult.Yes)
-			return;
-
-		DialogResult = false;
+		// Диалог покажет OnClosing, если есть несохранённые изменения
 		Close();
 	}
 
@@ -606,9 +609,21 @@ public partial class ThemeEditorWindow : Window
 	// =====================================================================
 	// ОЧИСТКА РЕСУРСОВ
 	// =====================================================================
-	protected override void OnClosed(EventArgs e)
+	protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
 	{
-		_previewPlayer.Close();
-		base.OnClosed(e);
+		if (_isDirty)
+		{
+			var answer = MessageBox.Show(
+				"Есть несохранённые изменения. Закрыть редактор без сохранения?",
+				"Подтверждение",
+				MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+			if (answer != MessageBoxResult.Yes)
+			{
+				e.Cancel = true;
+				return;
+			}
+		}
+		base.OnClosing(e);
 	}
 }
