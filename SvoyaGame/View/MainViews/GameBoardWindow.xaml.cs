@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections.ObjectModel;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -23,12 +24,13 @@ public partial class GameBoardWindow : Window
     private readonly Dictionary<string, Border> _tiles = new();
 	private readonly MediaPlayer _mediaQuestion = new();
 	private readonly MediaPlayer _mediaAnswer = new();
-
+	private readonly ObservableCollection<BoardPlayer> _boardPlayers = new();
 
 	public GameBoardWindow(List<Theme> themes, int[] prices)
     {
         InitializeComponent();
-        _themes = themes;
+		PlayersList.ItemsSource = _boardPlayers;
+		_themes = themes;
         _prices = prices;
 
         BuildBoard();
@@ -313,6 +315,62 @@ public partial class GameBoardWindow : Window
 		player.Position = TimeSpan.Zero;
 		player.Play();
 	}
+
+	/// <summary>
+	/// Обновляет панель игроков на табло: список, очки, онлайн, места.
+	/// Сортирует по очкам (убывание), при равенстве — по имени.
+	/// </summary>
+	public void UpdatePlayers(IEnumerable<(string Name, int Score, bool Online)> players)
+	{
+		var incoming = players.ToList();
+
+		// Удаляем тех, кого больше нет в списке
+		for (int i = _boardPlayers.Count - 1; i >= 0; i--)
+		{
+			if (incoming.All(p => p.Name != _boardPlayers[i].Name))
+				_boardPlayers.RemoveAt(i);
+		}
+
+		// Обновляем существующих / добавляем новых
+		foreach (var p in incoming)
+		{
+			var existing = _boardPlayers.FirstOrDefault(x => x.Name == p.Name);
+			if (existing == null)
+			{
+				_boardPlayers.Add(new BoardPlayer(p.Name)
+				{
+					Score = p.Score,
+					IsOnline = p.Online
+				});
+			}
+			else
+			{
+				existing.Score = p.Score;
+				existing.IsOnline = p.Online;
+			}
+		}
+
+		// Сортировка: по очкам (убывание), затем по имени
+		var sorted = _boardPlayers
+			.OrderByDescending(x => x.Score)
+			.ThenBy(x => x.Name, StringComparer.CurrentCulture)
+			.ToList();
+
+		for (int i = 0; i < sorted.Count; i++)
+		{
+			sorted[i].Rank = i + 1;
+
+			int currentIndex = _boardPlayers.IndexOf(sorted[i]);
+			if (currentIndex != i)
+				_boardPlayers.Move(currentIndex, i);
+		}
+
+		// Заглушка "Ожидание игроков..." — когда список пуст
+		bool empty = _boardPlayers.Count == 0;
+		NoPlayersText.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
+		PlayersScroll.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
+	}
+
 	protected override void OnClosed(EventArgs e)
 	{
 		_mediaQuestion.Close();

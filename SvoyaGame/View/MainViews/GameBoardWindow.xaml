@@ -100,16 +100,24 @@
 		</Style>
 	</Window.Resources>
 
-    <Grid>
-        <!-- =============== РЕЖИМ 1: ИГРОВОЕ ПОЛЕ =============== -->
-        <Grid x:Name="GridView">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
+	<Grid>
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="*"/>
+			<ColumnDefinition Width="300"/>
+		</Grid.ColumnDefinitions>
 
-            <TextBlock Grid.Row="0"
+		<!-- ========== ЛЕВАЯ ЧАСТЬ: сетка или вопрос ========== -->
+		<Grid Grid.Column="0">
+
+			<!-- =============== РЕЖИМ 1: ИГРОВОЕ ПОЛЕ =============== -->
+			<Grid x:Name="GridView">
+				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="*"/>
+					<RowDefinition Height="Auto"/>
+				</Grid.RowDefinitions>
+
+				<TextBlock Grid.Row="0"
                        Text="🎄 СВОЯ ИГРА 🎄"
                        Foreground="{StaticResource AccentGold}"
                        FontSize="34"
@@ -117,147 +125,246 @@
                        HorizontalAlignment="Center"
                        Margin="0,18,0,10"/>
 
-            <UniformGrid x:Name="BoardGrid"
+				<UniformGrid x:Name="BoardGrid"
                          Grid.Row="1"
                          Rows="5"
                          Columns="6"
                          Margin="14"/>
 
-            <TextBlock Grid.Row="2"
+				<TextBlock Grid.Row="2"
                        Text="Выберите тему и стоимость"
                        Foreground="#9FB3C8"
                        FontSize="18"
                        HorizontalAlignment="Center"
                        Margin="0,0,0,18"/>
-        </Grid>
+			</Grid>
 
-		<!-- =============== РЕЖИМ 2: ПОКАЗ ВОПРОСА =============== -->
-		<Grid x:Name="QuestionView" Visibility="Collapsed">
-			<Grid.RowDefinitions>
-				<RowDefinition Height="Auto"/>
-				<!-- тема + цена -->
-				<RowDefinition Height="*"/>
-				<!-- вопрос -->
-				<RowDefinition Height="Auto"/>
-				<!-- ответ -->
-			</Grid.RowDefinitions>
+			<!-- =============== РЕЖИМ 2: ПОКАЗ ВОПРОСА =============== -->
+			<Grid x:Name="QuestionView" Visibility="Collapsed">
+				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="*"/>
+					<RowDefinition Height="Auto"/>
+				</Grid.RowDefinitions>
 
-			<!-- Шапка -->
-			<StackPanel Grid.Row="0"
-                Orientation="Horizontal"
-                HorizontalAlignment="Center"
-                Margin="0,24,0,10">
-				<TextBlock x:Name="HeaderTheme"
-                   Text="Тема"
-                   Foreground="{StaticResource AccentGold}"
-                   FontSize="28"
-                   FontWeight="Bold"/>
-				<TextBlock Text=" • "
-                   Foreground="{StaticResource AccentGold}"
-                   FontSize="28"
-                   FontWeight="Bold"/>
-				<TextBlock x:Name="HeaderPrice"
-                   Text="100"
-                   Foreground="{StaticResource AccentGreen}"
-                   FontSize="28"
-                   FontWeight="Bold"/>
-			</StackPanel>
+				<StackPanel Grid.Row="0"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Center"
+                        Margin="0,24,0,10">
+					<TextBlock x:Name="HeaderTheme"
+                           Text="Тема"
+                           Foreground="{StaticResource AccentGold}"
+                           FontSize="28"
+                           FontWeight="Bold"/>
+					<TextBlock Text=" • "
+                           Foreground="{StaticResource AccentGold}"
+                           FontSize="28"
+                           FontWeight="Bold"/>
+					<TextBlock x:Name="HeaderPrice"
+                           Text="100"
+                           Foreground="{StaticResource AccentGreen}"
+                           FontSize="28"
+                           FontWeight="Bold"/>
+				</StackPanel>
 
-			<!-- Вопрос -->
-			<Border Grid.Row="1"
-            Background="{StaticResource BgPanel}"
-            CornerRadius="16"
-            Margin="40,10,40,10"
-            Padding="30">
-				<Grid>
-					<Grid.RowDefinitions>
-						<RowDefinition Height="*"/>
-						<RowDefinition Height="Auto"/>
-					</Grid.RowDefinitions>
+				<Border Grid.Row="1"
+                    Background="{StaticResource BgPanel}"
+                    CornerRadius="16"
+                    Margin="40,10,40,10"
+                    Padding="30">
+					<Grid>
+						<Grid.RowDefinitions>
+							<RowDefinition Height="*"/>
+							<RowDefinition Height="Auto"/>
+						</Grid.RowDefinitions>
 
-					<!-- Контент вопроса -->
-					<StackPanel Grid.Row="0"
-                        VerticalAlignment="Center"
-                        HorizontalAlignment="Center">
-						<Image x:Name="ImgQuestion"
-                       MaxHeight="360"
-                       Margin="0,0,0,12"
-                       Stretch="Uniform"
-                       Visibility="Collapsed"/>
+						<StackPanel Grid.Row="0"
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Center">
+							<Image x:Name="ImgQuestion"
+                               MaxHeight="360"
+                               Margin="0,0,0,12"
+                               Stretch="Uniform"
+                               Visibility="Collapsed"/>
 
-						<TextBlock x:Name="QuestionText"
-                           Text=""
-                           Foreground="{StaticResource TextMain}"
-                           FontSize="40"
-                           FontWeight="Bold"
-                           TextWrapping="Wrap"
-                           TextAlignment="Center"
+							<TextBlock x:Name="QuestionText"
+                                   Text=""
+                                   Foreground="{StaticResource TextMain}"
+                                   FontSize="40"
+                                   FontWeight="Bold"
+                                   TextWrapping="Wrap"
+                                   TextAlignment="Center"
+                                   HorizontalAlignment="Center"
+                                   Visibility="Collapsed"/>
+						</StackPanel>
+
+						<Button x:Name="AudioBtnQuestion"
+                            Grid.Row="1"
+                            Style="{StaticResource GreenButton}"
+                            Content="▶ ПРОСЛУШАТЬ"
+                            FontSize="16"
+                            Padding="16,8"
+                            Margin="0,16,0,0"
+                            HorizontalAlignment="Center"
+                            Click="AudioButton_Click"
+                            Visibility="Collapsed"/>
+					</Grid>
+				</Border>
+
+				<Border x:Name="AnswerPanel"
+                    Grid.Row="2"
+                    Background="#0F2544"
+                    CornerRadius="10"
+                    Margin="40,0,40,24"
+                    Padding="18"
+                    Visibility="Collapsed">
+					<StackPanel>
+						<TextBlock Text="ОТВЕТ:"
+                               Foreground="#9FB3C8"
+                               FontSize="14"
+                               FontWeight="Bold"
+                               HorizontalAlignment="Center"/>
+
+						<Image x:Name="ImgAnswer"
+                           MaxHeight="180"
+                           Margin="0,8,0,0"
+                           Stretch="Uniform"
                            HorizontalAlignment="Center"
                            Visibility="Collapsed"/>
+
+						<TextBlock x:Name="AnswerText"
+                               Text=""
+                               Foreground="{StaticResource AccentGreen}"
+                               FontSize="24"
+                               FontWeight="Bold"
+                               TextWrapping="Wrap"
+                               TextAlignment="Center"
+                               HorizontalAlignment="Center"
+                               Margin="0,6,0,0"
+                               Visibility="Collapsed"/>
+
+						<Button x:Name="AudioBtnAnswer"
+                            Style="{StaticResource GreenButton}"
+                            Content="▶ ПРОСЛУШАТЬ"
+                            FontSize="14"
+                            Padding="12,6"
+                            Margin="0,10,0,0"
+                            HorizontalAlignment="Center"
+                            Click="AudioButton_Click"
+                            Visibility="Collapsed"/>
 					</StackPanel>
-
-					<!-- Кнопка звука вопроса -->
-					<Button x:Name="AudioBtnQuestion"
-                        Grid.Row="1"
-						Style="{StaticResource GreenButton}"
-                        Content="▶ ПРОСЛУШАТЬ"
-                        FontSize="16"
-                        Padding="16,8"
-                        Margin="0,16,0,0"
-                        HorizontalAlignment="Center"
-                        Click="AudioButton_Click"
-                        Visibility="Collapsed"/>
-
-
-				</Grid>
-			</Border>
-
-			<!-- Ответ (скрыт по умолчанию) -->
-			<Border x:Name="AnswerPanel"
-            Grid.Row="2"
-            Background="#0F2544"
-            CornerRadius="10"
-            Margin="40,0,40,24"
-            Padding="18"
-            Visibility="Collapsed">
-				<StackPanel>
-					<TextBlock Text="ОТВЕТ:"
-                       Foreground="#9FB3C8"
-                       FontSize="14"
-                       FontWeight="Bold"
-                       HorizontalAlignment="Center"/>
-
-					<Image x:Name="ImgAnswer"
-                   MaxHeight="180"
-                   Margin="0,8,0,0"
-                   Stretch="Uniform"
-                   HorizontalAlignment="Center"
-                   Visibility="Collapsed"/>
-
-					<TextBlock x:Name="AnswerText"
-                       Text=""
-                       Foreground="{StaticResource AccentGreen}"
-                       FontSize="24"
-                       FontWeight="Bold"
-                       TextWrapping="Wrap"
-                       TextAlignment="Center"
-                       HorizontalAlignment="Center"
-                       Margin="0,6,0,0"
-                       Visibility="Collapsed"/>
-
-					<Button x:Name="AudioBtnAnswer"
-						Style="{StaticResource GreenButton}"
-                        Content="▶ ПРОСЛУШАТЬ"
-                        FontSize="14"
-                        Padding="12,6"
-                        Margin="0,10,0,0"
-                        HorizontalAlignment="Center"
-                        Click="AudioButton_Click"
-                        Visibility="Collapsed"/>
-
-
-				</StackPanel>
-			</Border>
+				</Border>
+			</Grid>
 		</Grid>
+
+		<!-- ========== ПРАВАЯ ЧАСТЬ: табло очков ========== -->
+		<Border Grid.Column="1"
+            Background="#0F2544"
+            BorderBrush="{StaticResource AccentGold}"
+            BorderThickness="2,0,0,0"
+            Padding="16,20">
+			<Grid>
+				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="*"/>
+				</Grid.RowDefinitions>
+
+				<TextBlock Grid.Row="0"
+                       Text="🏆 ТАБЛО ОЧКОВ"
+                       Foreground="{StaticResource AccentGold}"
+                       FontSize="20"
+                       FontWeight="Bold"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,16"/>
+
+				<TextBlock x:Name="NoPlayersText"
+                       Grid.Row="1"
+                       Text="Ожидание игроков..."
+                       Foreground="#9FB3C8"
+                       FontSize="16"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"/>
+
+				<ScrollViewer Grid.Row="1"
+                          VerticalScrollBarVisibility="Auto"
+                          Visibility="Collapsed"
+                          x:Name="PlayersScroll">
+					<ItemsControl x:Name="PlayersList">
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<Border Background="#0B1E3A"
+                                    CornerRadius="8"
+                                    Padding="12,8"
+                                    Margin="0,4">
+									<Grid>
+										<Grid.ColumnDefinitions>
+											<ColumnDefinition Width="Auto"/>
+											<ColumnDefinition Width="*"/>
+											<ColumnDefinition Width="Auto"/>
+										</Grid.ColumnDefinitions>
+
+										<TextBlock Grid.Column="0"
+                                               Text="{Binding RankLabel}"
+                                               FontSize="18"
+                                               FontWeight="Bold"
+                                               VerticalAlignment="Center"
+                                               MinWidth="30"
+                                               Margin="0,0,8,0">
+											<TextBlock.Style>
+												<Style TargetType="TextBlock">
+													<Setter Property="Foreground" Value="{StaticResource AccentGold}"/>
+													<Style.Triggers>
+														<DataTrigger Binding="{Binding IsOnline}" Value="False">
+															<Setter Property="Foreground" Value="#7F8C8D"/>
+														</DataTrigger>
+													</Style.Triggers>
+												</Style>
+											</TextBlock.Style>
+										</TextBlock>
+
+										<TextBlock Grid.Column="1"
+                                               Text="{Binding Name}"
+                                               FontSize="18"
+                                               FontWeight="Bold"
+                                               VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis">
+											<TextBlock.Style>
+												<Style TargetType="TextBlock">
+													<Setter Property="Foreground" Value="{StaticResource TextMain}"/>
+													<Style.Triggers>
+														<DataTrigger Binding="{Binding IsOnline}" Value="False">
+															<Setter Property="Foreground" Value="#7F8C8D"/>
+															<Setter Property="FontStyle" Value="Italic"/>
+														</DataTrigger>
+													</Style.Triggers>
+												</Style>
+											</TextBlock.Style>
+										</TextBlock>
+
+										<TextBlock Grid.Column="2"
+                                               Text="{Binding Score}"
+                                               FontSize="22"
+                                               FontWeight="Bold"
+                                               VerticalAlignment="Center"
+                                               Margin="8,0,0,0">
+											<TextBlock.Style>
+												<Style TargetType="TextBlock">
+													<Setter Property="Foreground" Value="{StaticResource AccentGreen}"/>
+													<Style.Triggers>
+														<DataTrigger Binding="{Binding IsOnline}" Value="False">
+															<Setter Property="Foreground" Value="#7F8C8D"/>
+														</DataTrigger>
+													</Style.Triggers>
+												</Style>
+											</TextBlock.Style>
+										</TextBlock>
+									</Grid>
+								</Border>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</ScrollViewer>
+			</Grid>
+		</Border>
 	</Grid>
 </Window>

@@ -264,7 +264,8 @@ public partial class MainWindow : Window
                 BtnHideQuestion.IsEnabled = false;
             };
             _boardWindow.Show();
-        }
+			RefreshBoardPlayers();
+		}
         else
         {
             _boardWindow.Activate();
@@ -283,9 +284,8 @@ public partial class MainWindow : Window
             if (_players.All(p => p.Name != name))
                 _players.Add(new PlayerRow(name) { IsOnline = true });
         }
-
-        // Обновляем статусы (пока просто все online; после onScoresUpdated уточнится)
-    }
+		RefreshBoardPlayers();
+	}
 
     private void ApplyScores(List<System.Text.Json.JsonElement> list)
     {
@@ -308,7 +308,8 @@ public partial class MainWindow : Window
             row.Score = score;
             row.IsOnline = online;
         }
-    }
+		RefreshBoardPlayers();
+	}
 
     private void UpdateTop3(List<string> top)
     {
@@ -568,6 +569,21 @@ public partial class MainWindow : Window
 		MessageBox.Show(text.ToString(),
 			"Отсутствующие файлы",
 			MessageBoxButton.OK, MessageBoxImage.Warning);
+	}
+
+	/// <summary>
+	/// Отправляет на табло актуальный список игроков с очками.
+	/// </summary>
+	private void RefreshBoardPlayers()
+	{
+		if (_boardWindow is null || !_boardWindow.IsLoaded)
+			return;
+
+		var data = _players
+			.Select(p => (p.Name, p.Score, p.IsOnline))
+			.ToList();
+
+		_boardWindow.UpdatePlayers(data);
 	}
 
 	protected override void OnClosed(EventArgs e)
