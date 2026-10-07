@@ -5,13 +5,12 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="Редактор вопросов"
-        Height="760" Width="1180"
-        MinHeight="560" MinWidth="900"
+        Height="780" Width="1320"
+        MinHeight="600" MinWidth="1050"
         WindowStartupLocation="CenterOwner"
         Background="#0B1E3A">
 
 	<Window.Resources>
-		<!-- Цвета -->
 		<SolidColorBrush x:Key="BgDeep"     Color="#0B1E3A"/>
 		<SolidColorBrush x:Key="BgPanel"    Color="#122B4E"/>
 		<SolidColorBrush x:Key="BgPanel2"   Color="#1A3A66"/>
@@ -21,7 +20,6 @@
 		<SolidColorBrush x:Key="TextMain"   Color="#F1FAFF"/>
 		<SolidColorBrush x:Key="TextMuted"  Color="#9FB3C8"/>
 
-		<!-- Базовая кнопка -->
 		<Style x:Key="BaseButton" TargetType="Button">
 			<Setter Property="Foreground" Value="#0B1E3A"/>
 			<Setter Property="FontWeight" Value="Bold"/>
@@ -67,7 +65,6 @@
 			<Setter Property="Foreground" Value="White"/>
 		</Style>
 
-		<!-- Поля ввода -->
 		<Style x:Key="DarkTextBox" TargetType="TextBox">
 			<Setter Property="Background" Value="#0B1E3A"/>
 			<Setter Property="Foreground" Value="{StaticResource TextMain}"/>
@@ -81,7 +78,6 @@
 			<Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
 		</Style>
 
-		<!-- ListBox -->
 		<Style x:Key="DarkListBox" TargetType="ListBox">
 			<Setter Property="Background" Value="#0B1E3A"/>
 			<Setter Property="Foreground" Value="{StaticResource TextMain}"/>
@@ -128,15 +124,15 @@
 			<RowDefinition Height="Auto"/>
 		</Grid.RowDefinitions>
 		<Grid.ColumnDefinitions>
-			<ColumnDefinition Width="260"/>
+			<ColumnDefinition Width="220"/>
+			<ColumnDefinition Width="240"/>
 			<ColumnDefinition Width="*"/>
 		</Grid.ColumnDefinitions>
 
-		<!-- ЛЕВАЯ ПАНЕЛЬ: список тем -->
+		<!-- ============ РАУНДЫ ============ -->
 		<Border Grid.Row="0" Grid.Column="0"
                 Background="{StaticResource BgPanel}"
-                CornerRadius="10"
-                Padding="12">
+                CornerRadius="10" Padding="12">
 			<Grid>
 				<Grid.RowDefinitions>
 					<RowDefinition Height="Auto"/>
@@ -144,12 +140,39 @@
 					<RowDefinition Height="Auto"/>
 				</Grid.RowDefinitions>
 
-				<TextBlock Grid.Row="0"
-                           Text="🎯 ТЕМЫ ИГРЫ"
+				<TextBlock Grid.Row="0" Text="🎬 РАУНДЫ"
                            Foreground="{StaticResource AccentGold}"
-                           FontWeight="Bold"
-                           FontSize="14"
-                           Margin="0,0,0,8"/>
+                           FontWeight="Bold" FontSize="14" Margin="0,0,0,8"/>
+
+				<ListBox x:Name="RoundsList"
+                         Grid.Row="1"
+                         Style="{StaticResource DarkListBox}"
+                         DisplayMemberPath="Name"
+                         SelectionChanged="RoundsList_SelectionChanged"/>
+
+				<StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,0">
+					<Button x:Name="BtnAddRound" Style="{StaticResource GreenButton}"
+                            Content="+ Раунд" Click="BtnAddRound_Click" Width="100"/>
+					<Button x:Name="BtnRemoveRound" Style="{StaticResource RedButton}"
+                            Content="−" Click="BtnRemoveRound_Click" Width="60" Margin="6,0,0,0"/>
+				</StackPanel>
+			</Grid>
+		</Border>
+
+		<!-- ============ ТЕМЫ ============ -->
+		<Border Grid.Row="0" Grid.Column="1"
+                Background="{StaticResource BgPanel}"
+                CornerRadius="10" Padding="12" Margin="10,0,0,0">
+			<Grid>
+				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="*"/>
+					<RowDefinition Height="Auto"/>
+				</Grid.RowDefinitions>
+
+				<TextBlock Grid.Row="0" Text="📚 ТЕМЫ"
+                           Foreground="{StaticResource AccentGold}"
+                           FontWeight="Bold" FontSize="14" Margin="0,0,0,8"/>
 
 				<ListBox x:Name="ThemesList"
                          Grid.Row="1"
@@ -158,88 +181,119 @@
                          SelectionChanged="ThemesList_SelectionChanged"/>
 
 				<StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,0">
-					<Button x:Name="BtnAddTheme"
-                            Style="{StaticResource GreenButton}"
-                            Content="+ Добавить"
-                            Click="BtnAddTheme_Click"
-                            Width="120"/>
-					<Button x:Name="BtnRemoveTheme"
-                            Style="{StaticResource RedButton}"
-                            Content="− Удалить"
-                            Click="BtnRemoveTheme_Click"
-                            Width="110"
-                            Margin="6,0,0,0"/>
+					<Button x:Name="BtnAddTheme" Style="{StaticResource GreenButton}"
+                            Content="+ Тема" Click="BtnAddTheme_Click" Width="100"/>
+					<Button x:Name="BtnRemoveTheme" Style="{StaticResource RedButton}"
+                            Content="−" Click="BtnRemoveTheme_Click" Width="60" Margin="6,0,0,0"/>
 				</StackPanel>
 			</Grid>
 		</Border>
 
-		<!-- ПРАВАЯ ПАНЕЛЬ: редактирование выбранной темы -->
-		<Border Grid.Row="0" Grid.Column="1"
+		<!-- ============ ПРАВАЯ ПАНЕЛЬ: РАУНД + ТЕМА + ВОПРОСЫ ============ -->
+		<Border Grid.Row="0" Grid.Column="2"
                 Background="{StaticResource BgPanel}"
-                CornerRadius="10"
-                Padding="14"
-                Margin="12,0,0,0">
+                CornerRadius="10" Padding="14" Margin="10,0,0,0">
 			<Grid>
 				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="*"/>
 				</Grid.RowDefinitions>
 
-				<StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
-					<TextBlock Text="Название темы:"
+				<!-- Заголовок раунда -->
+				<Border Grid.Row="0"
+                        Background="#0B1E3A"
+                        CornerRadius="8"
+                        Padding="10"
+                        Margin="0,0,0,10">
+					<StackPanel>
+						<StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+							<TextBlock Text="Раунд:"
+                                       Foreground="{StaticResource AccentGold}"
+                                       FontWeight="Bold"
+                                       FontSize="13"
+                                       VerticalAlignment="Center"
+                                       Width="70"/>
+							<TextBox x:Name="TxtRoundName"
+                                     Style="{StaticResource DarkTextBox}"
+                                     FontSize="14"
+                                     Height="30"
+                                     Width="300"
+                                     AcceptsReturn="False"
+                                     TextWrapping="NoWrap"
+                                     VerticalContentAlignment="Center"
+                                     TextChanged="TxtRoundName_TextChanged"/>
+						</StackPanel>
+
+						<StackPanel Orientation="Horizontal">
+							<TextBlock Text="Цены:"
+                                       Foreground="{StaticResource AccentGold}"
+                                       FontWeight="Bold"
+                                       FontSize="13"
+                                       VerticalAlignment="Center"
+                                       Width="70"/>
+							<TextBox x:Name="TxtPrices"
+                                     Style="{StaticResource DarkTextBox}"
+                                     FontSize="14"
+                                     Height="30"
+                                     Width="460"
+                                     AcceptsReturn="False"
+                                     TextWrapping="NoWrap"
+                                     VerticalContentAlignment="Center"
+                                     ToolTip="Перечислите цены через запятую: 100, 200, 400, 700, 1000"
+                                     TextChanged="TxtPrices_TextChanged"
+                                     LostFocus="TxtPrices_LostFocus"/>
+						</StackPanel>
+					</StackPanel>
+				</Border>
+
+				<!-- Заголовок темы -->
+				<StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+					<TextBlock Text="Тема:"
                                Foreground="{StaticResource AccentGold}"
                                FontWeight="Bold"
-                               FontSize="14"
+                               FontSize="13"
                                VerticalAlignment="Center"
-                               Margin="0,0,10,0"/>
+                               Width="70"/>
 					<TextBox x:Name="TxtThemeName"
                              Style="{StaticResource DarkTextBox}"
-                             FontSize="15"
-                             Width="420"
-                             Height="34"
+                             FontSize="14"
+                             Height="30"
+                             Width="460"
                              AcceptsReturn="False"
                              TextWrapping="NoWrap"
                              VerticalContentAlignment="Center"
                              TextChanged="TxtThemeName_TextChanged"/>
 				</StackPanel>
 
-				<ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+				<!-- Список вопросов -->
+				<ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
 					<StackPanel x:Name="QuestionsPanel"/>
 				</ScrollViewer>
 			</Grid>
 		</Border>
 
-		<!-- НИЖНЯЯ ПАНЕЛЬ: кнопки -->
-		<Grid Grid.Row="1" Grid.ColumnSpan="2" Margin="0,12,0,0">
+		<!-- ============ НИЖНЯЯ ПАНЕЛЬ ============ -->
+		<Grid Grid.Row="1" Grid.ColumnSpan="3" Margin="0,12,0,0">
 			<Grid.ColumnDefinitions>
 				<ColumnDefinition Width="Auto"/>
 				<ColumnDefinition Width="*"/>
 				<ColumnDefinition Width="Auto"/>
 			</Grid.ColumnDefinitions>
 
-			<Button x:Name="BtnOpenMedia"
-            Grid.Column="0"
-            Style="{StaticResource BlueButton}"
-            Content="📁 ОТКРЫТЬ MEDIA"
-            Click="BtnOpenMedia_Click"
-            Width="180"
-            Height="40"
-            FontSize="12"/>
+			<Button x:Name="BtnOpenMedia" Grid.Column="0"
+                    Style="{StaticResource BlueButton}"
+                    Content="📁 ОТКРЫТЬ MEDIA"
+                    Click="BtnOpenMedia_Click"
+                    Width="180" Height="40" FontSize="12"/>
 
 			<StackPanel Grid.Column="2" Orientation="Horizontal">
-				<Button x:Name="BtnCancel"
-                Style="{StaticResource BlueButton}"
-                Content="Отмена"
-                Click="BtnCancel_Click"
-                Width="140"
-                Height="40"/>
-				<Button x:Name="BtnSave"
-                Style="{StaticResource GoldButton}"
-                Content="💾 СОХРАНИТЬ"
-                Click="BtnSave_Click"
-                Width="180"
-                Height="40"
-                Margin="10,0,0,0"/>
+				<Button x:Name="BtnCancel" Style="{StaticResource BlueButton}"
+                        Content="Отмена" Click="BtnCancel_Click"
+                        Width="140" Height="40"/>
+				<Button x:Name="BtnSave" Style="{StaticResource GoldButton}"
+                        Content="💾 СОХРАНИТЬ" Click="BtnSave_Click"
+                        Width="180" Height="40" Margin="10,0,0,0"/>
 			</StackPanel>
 		</Grid>
 	</Grid>

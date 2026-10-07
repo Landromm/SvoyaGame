@@ -1,86 +1,1310 @@
 {
-	"themes": [
+	"rounds": [
 		{
-			"name": "Проверка формата",
-			"questions": {
-				"100": {
-					"question": {
-						"text": "Чисто текст — новый формат",
-						"image": null,
-						"audio": null
-					},
-					"answer": {
-						"text": "Ответ текстом",
-						"image": null,
-						"audio": null
+			"name": "Раунд 1",
+			"prices": [ 100, 200, 400, 700, 1000 ],
+			"isFinal": false,
+			"themes": [
+				{
+					"name": "Новогодние традиции",
+					"questions": {
+						"100": {
+							"question": {
+								"text": "Главный атрибут Нового года?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Ёлка",
+								"image": null,
+								"audio": null
+							}
+						},
+						"200": {
+							"question": {
+								"text": "В какую ночь загадывают желание?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "С 31 декабря на 1 января",
+								"image": null,
+								"audio": null
+							}
+						},
+						"400": {
+							"question": {
+								"text": "Сколько раз бьют куранты?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "12",
+								"image": null,
+								"audio": null
+							}
+						},
+						"700": {
+							"question": {
+								"text": "Что дарят в Италии для удачи?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Красное бельё",
+								"image": null,
+								"audio": null
+							}
+						},
+						"1000": {
+							"question": {
+								"text": "Фильм, который показывают каждый год?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Ирония судьбы",
+								"image": null,
+								"audio": null
+							}
+						}
 					}
 				},
-				"200": {
-					"question": "А это старая строка — читается как текст",
-					"answer": "И ответ строкой"
-				},
-				"400": {
-					"question": {
-						"text": "Текст плюс картинка",
-						"image": "media/sample.png",
-						"audio": null
-					},
-					"answer": {
-						"text": "Ответ с картинкой",
-						"image": null,
-						"audio": null
+				{
+					"name": "Зимние сказки",
+					"questions": {
+						"100": {
+							"question": {
+								"text": "Девочка, попавшая в ледяное царство?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Герда",
+								"image": null,
+								"audio": null
+							}
+						},
+						"200": {
+							"question": {
+								"text": "Кто украл Герду?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Снежная королева",
+								"image": null,
+								"audio": null
+							}
+						},
+						"400": {
+							"question": {
+								"text": "Мальчик из той же сказки?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Кай",
+								"image": null,
+								"audio": null
+							}
+						},
+						"700": {
+							"question": {
+								"text": "Сказка про девочку и трёх медведей?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Три медведя",
+								"image": null,
+								"audio": null
+							}
+						},
+						"1000": {
+							"question": {
+								"text": "Сказка, где Морозко проверял доброту?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Морозко",
+								"image": null,
+								"audio": null
+							}
+						}
 					}
 				},
-				"700": {
-					"question": {
-						"text": null,
-						"image": null,
-						"audio": "media/sample.mp3"
-					},
-					"answer": {
-						"text": "Ответ к звуковому вопросу",
-						"image": null,
-						"audio": null
+				{
+					"name": "Ёлочные игрушки",
+					"questions": {
+						"100": {
+							"question": {
+								"text": "Цвет традиционного шара?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Красный",
+								"image": null,
+								"audio": null
+							}
+						},
+						"200": {
+							"question": {
+								"text": "Чем украшали ёлку раньше?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Яблоками и орехами",
+								"image": null,
+								"audio": null
+							}
+						},
+						"400": {
+							"question": {
+								"text": "Что на верхушке ёлки?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Звезда",
+								"image": null,
+								"audio": null
+							}
+						},
+						"700": {
+							"question": {
+								"text": "Из чего делают дорогие игрушки?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Из стекла",
+								"image": null,
+								"audio": null
+							}
+						},
+						"1000": {
+							"question": {
+								"text": "Родина традиции украшать ёлку?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Германия",
+								"image": null,
+								"audio": null
+							}
+						}
 					}
 				},
-				"1000": {
-					"question": {
-						"text": "Всё вместе",
-						"image": "media/sample.png",
-						"audio": "media/sample.mp3"
-					},
-					"answer": {
-						"text": "Полный набор",
-						"image": "media/sample.png",
-						"audio": null
+				{
+					"name": "Новогодний стол",
+					"questions": {
+						"100": {
+							"question": {
+								"text": "Символ новогоднего стола?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Оливье",
+								"image": null,
+								"audio": null
+							}
+						},
+						"200": {
+							"question": {
+								"text": "Что пьют под куранты?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Шампанское",
+								"image": null,
+								"audio": null
+							}
+						},
+						"400": {
+							"question": {
+								"text": "Обязательный фрукт на столе?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Мандарины",
+								"image": null,
+								"audio": null
+							}
+						},
+						"700": {
+							"question": {
+								"text": "Салат с сельдью?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Селёдка под шубой",
+								"image": null,
+								"audio": null
+							}
+						},
+						"1000": {
+							"question": {
+								"text": "Блюдо из риса в Японии на НГ?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Моти",
+								"image": null,
+								"audio": null
+							}
+						}
+					}
+				},
+				{
+					"name": "Деды Морозы мира",
+					"questions": {
+						"100": {
+							"question": {
+								"text": "Российский новогодний волшебник?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Дед Мороз",
+								"image": null,
+								"audio": null
+							}
+						},
+						"200": {
+							"question": {
+								"text": "Внучка Деда Мороза?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Снегурочка",
+								"image": null,
+								"audio": null
+							}
+						},
+						"400": {
+							"question": {
+								"text": "Американский волшебник?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Санта-Клаус",
+								"image": null,
+								"audio": null
+							}
+						},
+						"700": {
+							"question": {
+								"text": "На чём ездит Дед Мороз?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "На тройке лошадей",
+								"image": null,
+								"audio": null
+							}
+						},
+						"1000": {
+							"question": {
+								"text": "Как зовут волшебника во Франции?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Пер-Ноэль",
+								"image": null,
+								"audio": null
+							}
+						}
+					}
+				},
+				{
+					"name": "Зимние виды спорта",
+					"questions": {
+						"100": {
+							"question": {
+								"text": "Спорт на коньках с шайбой?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Хоккей",
+								"image": null,
+								"audio": null
+							}
+						},
+						"200": {
+							"question": {
+								"text": "Спуск с горы на лыжах?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Горные лыжи",
+								"image": null,
+								"audio": null
+							}
+						},
+						"400": {
+							"question": {
+								"text": "Фигурное катание — это ...",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "На льду",
+								"image": null,
+								"audio": null
+							}
+						},
+						"700": {
+							"question": {
+								"text": "Олимпийский вид с камнем на льду?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Кёрлинг",
+								"image": null,
+								"audio": null
+							}
+						},
+						"1000": {
+							"question": {
+								"text": "Спорт: стрельба + лыжи?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Биатлон",
+								"image": null,
+								"audio": null
+							}
+						}
 					}
 				}
-			}
+			]
 		},
+
 		{
-			"name": "Вторая тема (обратная совместимость)",
-			"questions": {
-				"100": {
-					"question": "Просто строка в старом формате",
-					"answer": "Ответ строкой"
+			"name": "Раунд 2",
+			"prices": [ 200, 400, 600, 800, 1000 ],
+			"isFinal": false,
+			"themes": [
+				{
+					"name": "Кино",
+					"questions": {
+						"200": {
+							"question": {
+								"text": "Фильм про Гарри Поттера и камень?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Философский камень",
+								"image": null,
+								"audio": null
+							}
+						},
+						"400": {
+							"question": {
+								"text": "Режиссёр «Титаника»?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Джеймс Кэмерон",
+								"image": null,
+								"audio": null
+							}
+						},
+						"600": {
+							"question": {
+								"text": "Сколько «Оскаров» у «Властелина колец: Возвращение короля»?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "11",
+								"image": null,
+								"audio": null
+							}
+						},
+						"800": {
+							"question": {
+								"text": "Год выхода первого «Терминатора»?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "1984",
+								"image": null,
+								"audio": null
+							}
+						},
+						"1000": {
+							"question": {
+								"text": "Первый полнометражный мультфильм Disney?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Белоснежка",
+								"image": null,
+								"audio": null
+							}
+						}
+					}
 				},
-				"200": {
-					"question": "И ещё одна строка",
-					"answer": "Ответ"
+				{
+					"name": "Музыка",
+					"questions": {
+						"200": {
+							"question": {
+								"text": "Сколько нот в октаве?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "7",
+								"image": null,
+								"audio": null
+							}
+						},
+						"400": {
+							"question": {
+								"text": "Композитор «Времён года»?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Вивальди",
+								"image": null,
+								"audio": null
+							}
+						},
+						"600": {
+							"question": {
+								"text": "Инструмент со 88 клавишами?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Пианино",
+								"image": null,
+								"audio": null
+							}
+						},
+						"800": {
+							"question": {
+								"text": "Группа «Битлз» из какого города?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Ливерпуль",
+								"image": null,
+								"audio": null
+							}
+						},
+						"1000": {
+							"question": {
+								"text": "Автор «Лунной сонаты»?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Бетховен",
+								"image": null,
+								"audio": null
+							}
+						}
+					}
 				},
-				"400": {
-					"question": "Строка",
-					"answer": "Ответ"
+				{
+					"name": "Наука",
+					"questions": {
+						"200": {
+							"question": {
+								"text": "Символ воды?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "H₂O",
+								"image": null,
+								"audio": null
+							}
+						},
+						"400": {
+							"question": {
+								"text": "Самая большая планета?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Юпитер",
+								"image": null,
+								"audio": null
+							}
+						},
+						"600": {
+							"question": {
+								"text": "Сколько костей в теле человека?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "206",
+								"image": null,
+								"audio": null
+							}
+						},
+						"800": {
+							"question": {
+								"text": "Автор теории относительности?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Эйнштейн",
+								"image": null,
+								"audio": null
+							}
+						},
+						"1000": {
+							"question": {
+								"text": "Самый лёгкий газ?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Водород",
+								"image": null,
+								"audio": null
+							}
+						}
+					}
 				},
-				"700": {
-					"question": "Строка",
-					"answer": "Ответ"
+				{
+					"name": "География",
+					"questions": {
+						"200": {
+							"question": {
+								"text": "Столица Франции?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Париж",
+								"image": null,
+								"audio": null
+							}
+						},
+						"400": {
+							"question": {
+								"text": "Самая длинная река?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Нил / Амазонка",
+								"image": null,
+								"audio": null
+							}
+						},
+						"600": {
+							"question": {
+								"text": "Самый большой океан?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Тихий",
+								"image": null,
+								"audio": null
+							}
+						},
+						"800": {
+							"question": {
+								"text": "Столица Австралии?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Канберра",
+								"image": null,
+								"audio": null
+							}
+						},
+						"1000": {
+							"question": {
+								"text": "Самая высокая гора?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Эверест",
+								"image": null,
+								"audio": null
+							}
+						}
+					}
 				},
-				"1000": {
-					"question": "Строка",
-					"answer": "Ответ"
+				{
+					"name": "Спорт",
+					"questions": {
+						"200": {
+							"question": {
+								"text": "Сколько игроков в футбольной команде?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "11",
+								"image": null,
+								"audio": null
+							}
+						},
+						"400": {
+							"question": {
+								"text": "Страна-родина Олимпийских игр?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Греция",
+								"image": null,
+								"audio": null
+							}
+						},
+						"600": {
+							"question": {
+								"text": "Сколько сетов в теннисе на «Больших шлемах» у мужчин?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "5 (максимум)",
+								"image": null,
+								"audio": null
+							}
+						},
+						"800": {
+							"question": {
+								"text": "Чемпионат мира по футболу бывает каждые ...?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "4 года",
+								"image": null,
+								"audio": null
+							}
+						},
+						"1000": {
+							"question": {
+								"text": "Сколько колец на олимпийском флаге?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "5",
+								"image": null,
+								"audio": null
+							}
+						}
+					}
+				},
+				{
+					"name": "Животные",
+					"questions": {
+						"200": {
+							"question": {
+								"text": "Самое большое животное?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Синий кит",
+								"image": null,
+								"audio": null
+							}
+						},
+						"400": {
+							"question": {
+								"text": "Царь зверей?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Лев",
+								"image": null,
+								"audio": null
+							}
+						},
+						"600": {
+							"question": {
+								"text": "Самое быстрое наземное животное?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Гепард",
+								"image": null,
+								"audio": null
+							}
+						},
+						"800": {
+							"question": {
+								"text": "Сколько сердец у осьминога?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "3",
+								"image": null,
+								"audio": null
+							}
+						},
+						"1000": {
+							"question": {
+								"text": "Самая маленькая птица?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Колибри",
+								"image": null,
+								"audio": null
+							}
+						}
+					}
 				}
-			}
+			]
+		},
+
+		{
+			"name": "Раунд 3",
+			"prices": [ 300, 500, 700, 900, 1200 ],
+			"isFinal": false,
+			"themes": [
+				{
+					"name": "Литература",
+					"questions": {
+						"300": {
+							"question": {
+								"text": "Автор «Войны и мира»?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Толстой",
+								"image": null,
+								"audio": null
+							}
+						},
+						"500": {
+							"question": {
+								"text": "Автор «Евгения Онегина»?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Пушкин",
+								"image": null,
+								"audio": null
+							}
+						},
+						"700": {
+							"question": {
+								"text": "Как звали главного героя «Преступления и наказания»?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Раскольников",
+								"image": null,
+								"audio": null
+							}
+						},
+						"900": {
+							"question": {
+								"text": "Автор «Мастера и Маргариты»?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Булгаков",
+								"image": null,
+								"audio": null
+							}
+						},
+						"1200": {
+							"question": {
+								"text": "Сколько томов в «Гарри Поттере» (основная серия)?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "7",
+								"image": null,
+								"audio": null
+							}
+						}
+					}
+				},
+				{
+					"name": "Искусство",
+					"questions": {
+						"300": {
+							"question": {
+								"text": "Автор «Моны Лизы»?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Леонардо да Винчи",
+								"image": null,
+								"audio": null
+							}
+						},
+						"500": {
+							"question": {
+								"text": "Автор «Звёздной ночи»?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Ван Гог",
+								"image": null,
+								"audio": null
+							}
+						},
+						"700": {
+							"question": {
+								"text": "В каком музее хранится «Джоконда»?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Лувр",
+								"image": null,
+								"audio": null
+							}
+						},
+						"900": {
+							"question": {
+								"text": "Автор «Куба»?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Пикассо",
+								"image": null,
+								"audio": null
+							}
+						},
+						"1200": {
+							"question": {
+								"text": "Автор «Девятого вала»?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Айвазовский",
+								"image": null,
+								"audio": null
+							}
+						}
+					}
+				},
+				{
+					"name": "История",
+					"questions": {
+						"300": {
+							"question": {
+								"text": "Год начала Второй мировой войны?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "1939",
+								"image": null,
+								"audio": null
+							}
+						},
+						"500": {
+							"question": {
+								"text": "Первый президент США?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Джордж Вашингтон",
+								"image": null,
+								"audio": null
+							}
+						},
+						"700": {
+							"question": {
+								"text": "Год падения Берлинской стены?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "1989",
+								"image": null,
+								"audio": null
+							}
+						},
+						"900": {
+							"question": {
+								"text": "Первый человек в космосе?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Юрий Гагарин",
+								"image": null,
+								"audio": null
+							}
+						},
+						"1200": {
+							"question": {
+								"text": "Год первого полёта человека на Луну?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "1969",
+								"image": null,
+								"audio": null
+							}
+						}
+					}
+				},
+				{
+					"name": "Кухня народов мира",
+					"questions": {
+						"300": {
+							"question": {
+								"text": "Страна суши?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Япония",
+								"image": null,
+								"audio": null
+							}
+						},
+						"500": {
+							"question": {
+								"text": "Паэлья родом из ...?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Испании",
+								"image": null,
+								"audio": null
+							}
+						},
+						"700": {
+							"question": {
+								"text": "Основное блюдо итальянцев на ужин?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Паста",
+								"image": null,
+								"audio": null
+							}
+						},
+						"900": {
+							"question": {
+								"text": "В какой стране придумали пиццу?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Италия",
+								"image": null,
+								"audio": null
+							}
+						},
+						"1200": {
+							"question": {
+								"text": "Что такое фуа-гра?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Гусиная печень",
+								"image": null,
+								"audio": null
+							}
+						}
+					}
+				},
+				{
+					"name": "Технологии",
+					"questions": {
+						"300": {
+							"question": {
+								"text": "ОС от Microsoft?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Windows",
+								"image": null,
+								"audio": null
+							}
+						},
+						"500": {
+							"question": {
+								"text": "Создатель Facebook?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Марк Цукерберг",
+								"image": null,
+								"audio": null
+							}
+						},
+						"700": {
+							"question": {
+								"text": "Что означает аббревиатура «ИИ»?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Искусственный интеллект",
+								"image": null,
+								"audio": null
+							}
+						},
+						"900": {
+							"question": {
+								"text": "Компания-разработчик iPhone?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Apple",
+								"image": null,
+								"audio": null
+							}
+						},
+						"1200": {
+							"question": {
+								"text": "Первый компьютерный вирус как назывался?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Creeper",
+								"image": null,
+								"audio": null
+							}
+						}
+					}
+				},
+				{
+					"name": "Космос",
+					"questions": {
+						"300": {
+							"question": {
+								"text": "Ближайшая к нам звезда?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Солнце",
+								"image": null,
+								"audio": null
+							}
+						},
+						"500": {
+							"question": {
+								"text": "Красная планета?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Марс",
+								"image": null,
+								"audio": null
+							}
+						},
+						"700": {
+							"question": {
+								"text": "Спутник Земли?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Луна",
+								"image": null,
+								"audio": null
+							}
+						},
+						"900": {
+							"question": {
+								"text": "Первая женщина-космонавт?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "Валентина Терешкова",
+								"image": null,
+								"audio": null
+							}
+						},
+						"1200": {
+							"question": {
+								"text": "Сколько планет в Солнечной системе?",
+								"image": null,
+								"audio": null
+							},
+							"answer": {
+								"text": "8",
+								"image": null,
+								"audio": null
+							}
+						}
+					}
+				}
+			]
+		},
+
+		{
+			"name": "Финал",
+			"isFinal": true,
+			"prices": [],
+			"themes": [],
+			"finalThemes": [
+				{
+					"name": "Столицы",
+					"question": {
+						"text": "Столица Исландии?",
+						"image": null,
+						"audio": null
+					},
+					"answer": {
+						"text": "Рейкьявик",
+						"image": null,
+						"audio": null
+					}
+				},
+				{
+					"name": "Химия",
+					"question": {
+						"text": "Химический символ золота?",
+						"image": null,
+						"audio": null
+					},
+					"answer": {
+						"text": "Au",
+						"image": null,
+						"audio": null
+					}
+				},
+				{
+					"name": "Живопись",
+					"question": {
+						"text": "Автор «Сикстинской капеллы»?",
+						"image": null,
+						"audio": null
+					},
+					"answer": {
+						"text": "Микеланджело",
+						"image": null,
+						"audio": null
+					}
+				},
+				{
+					"name": "Кино",
+					"question": {
+						"text": "Режиссёр «Криминального чтива»?",
+						"image": null,
+						"audio": null
+					},
+					"answer": {
+						"text": "Квентин Тарантино",
+						"image": null,
+						"audio": null
+					}
+				},
+				{
+					"name": "Астрономия",
+					"question": {
+						"text": "Что такое «чёрная дыра»?",
+						"image": null,
+						"audio": null
+					},
+					"answer": {
+						"text": "Область с огромной гравитацией",
+						"image": null,
+						"audio": null
+					}
+				},
+				{
+					"name": "Литература",
+					"question": {
+						"text": "Настоящее имя Максима Горького?",
+						"image": null,
+						"audio": null
+					},
+					"answer": {
+						"text": "Алексей Пешков",
+						"image": null,
+						"audio": null
+					}
+				},
+				{
+					"name": "Спорт",
+					"question": {
+						"text": "Какой стране принадлежит Кубок мира по футболу (трофей)?",
+						"image": null,
+						"audio": null
+					},
+					"answer": {
+						"text": "Победителю турнира",
+						"image": null,
+						"audio": null
+					}
+				},
+				{
+					"name": "География",
+					"question": {
+						"text": "Самое глубокое озеро в мире?",
+						"image": null,
+						"audio": null
+					},
+					"answer": {
+						"text": "Байкал",
+						"image": null,
+						"audio": null
+					}
+				}
+			]
 		}
 	]
 }
