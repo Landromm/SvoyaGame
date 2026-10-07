@@ -10,12 +10,14 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Brush = System.Windows.Media.Brush;
 using Button = System.Windows.Controls.Button;
 using Color = System.Windows.Media.Color;
 using MessageBox = System.Windows.MessageBox;
+using Panel = System.Windows.Controls.Panel;
 
 namespace SvoyaGame.View.MainViews;
 
@@ -25,7 +27,10 @@ public partial class MainWindow : Window
 
     private readonly SocketIOClient.SocketIO _client;
     private readonly ObservableCollection<PlayerRow> _players = new();
-	private List<Theme> _themes;
+	private List<Round> _rounds = new();
+	private List<FinalTheme> _activeFinalThemes = new();
+	private Panel? _finalThemesPanel;
+	private Round? _finalRound;
 	private readonly HashSet<string> _usedCells = new(); // "Тема|Цена"
 	private readonly MediaPlayer _adminAnswerMedia = new();
 	private string? _currentRoom;
@@ -38,47 +43,20 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        // ---- Загрузка вопросов ----
-        _themes = QuestionsLoader.TryLoad(out var loadError) ?? new List<Theme>();
-
-
-		//// ВРЕМЕННО — для проверки парсера
-  //      var sb = new System.Text.StringBuilder();
-		//sb.AppendLine($"Тем: {_themes.Count}");
-		//foreach (var t in _themes)
-		//{
-		//	sb.AppendLine($"— {t.Name}");
-		//	foreach (var price in new[] { 100, 200, 400, 700, 1000 })
-		//	{
-		//		var q = t.GetQuestion(price);
-		//		if (q == null)
-		//		{ sb.AppendLine($"   {price}: <нет>"); continue; }
-
-		//		var qText = q.Question?.Text ?? "<нет текста>";
-		//		var qImg = q.Question?.Image ?? "-";
-		//		var qAud = q.Question?.Audio ?? "-";
-		//		var aText = q.Answer?.Text ?? "<нет текста>";
-		//		sb.AppendLine($"   {price}: Q=\"{qText}\" img={qImg} aud={qAud} | A=\"{aText}\"");
-		//	}
-		//}
-		//MessageBox.Show(sb.ToString(), "Содержимое questions.json");
-
+		// ---- Загрузка вопросов ----
+		_rounds = QuestionsLoader.TryLoadRounds(out var loadError) ?? new List<Round>();
 		if (loadError != null)
-        {
-            MessageBox.Show($"Не удалось загрузить questions.json:\n{loadError}",
-                "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
-        }
+		{
+			MessageBox.Show($"Не удалось загрузить questions.json:\n{loadError}",
+				"Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+		}
 
+		GridPlayers.ItemsSource = _players;
+		BuildRoundsUi();
 		CheckMediaOrWarn();
 
-		// ---- Привязки ----
-		GridPlayers.ItemsSource = _players;
-
-        // ---- Построение игрового поля ----
-        BuildGameGrid();
-
-        // ---- Socket.IO ----
-        _client = new SocketIOClient.SocketIO(new Uri("http://localhost:5000"));
+		// ---- Socket.IO ----
+		_client = new SocketIOClient.SocketIO(new Uri("http://localhost:5000"));
 
         _client.OnConnected += (_, _) =>
             Dispatcher.Invoke(() => StatusText.Text = "Статус: Подключен. Создайте комнату.");
@@ -137,145 +115,415 @@ public partial class MainWindow : Window
         });
     }
 
-    // =====================================================================
-    // ПОСТРОЕНИЕ ИГРОВОГО ПОЛЯ 5×6
-    // =====================================================================
-    private void BuildGameGrid()
-    {
-        GameGrid.Children.Clear();
-        _cellButtons.Clear();
+	// =====================================================================
+	// ПОСТРОЕНИЕ ИГРОВОГО ПОЛЯ 5×6
+	// =====================================================================
+	private void BuildRoundsUi()
+	{
+		RoundsTabControl.Items.Clear();
+		_cellButtons.Clear();
 
-        int rowCount = Math.Max(1, _themes.Count);   // до 5 тем
-        int colCount = 1 + Prices.Length;            // тема + 5 цен
+		for (int ri = 0; ri < _rounds.Count; ri++)
+		{
+			var round = _rounds[ri];
 
-        GameGrid.Rows = Math.Max(rowCount, 1);
-        GameGrid.Columns = colCount;
+			var tab = new TabItem
+			{
+				Header = round.Name,
+				Style = (Style)FindResource("DarkTabItem")
+			};
 
-        for (int r = 0; r < rowCount; r++)
-        {
-            var theme = r < _themes.Count ? _themes[r] : null;
+			// ----- ФИНАЛ -----
+			if (round.IsFinal)
+			{
+				tab.Content = BuildFinalTabContent(round, ri);
+				RoundsTabControl.Items.Add(tab);
+				continue;
+			}
 
-            // --- Колонка с темой ---
-            var themeBox = new Border
-            {
-                Background = new SolidColorBrush(Color.FromRgb(0x0B, 0x1E, 0x3A)),
-                CornerRadius = new CornerRadius(6),
-                Margin = new Thickness(3),
-                Child = new TextBlock
-                {
-                    Text = theme?.Name ?? "—",
-                    Foreground = (Brush)FindResource("AccentGold"),
-                    FontWeight = FontWeights.Bold,
-                    FontSize = 13,
-                    TextWrapping = TextWrapping.Wrap,
-                    TextAlignment = TextAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                    Margin = new Thickness(8)
-                }
-            };
-            GameGrid.Children.Add(themeBox);
+			// ----- Обычный раунд -----
+			var prices = round.Prices;
+			int rowCount = Math.Max(1, round.Themes.Count);
+			int colCount = 1 + prices.Length;
 
-            // --- Колонки с ценами ---
-            for (int c = 0; c < Prices.Length; c++)
-            {
-                int price = Prices[c];
-                var btn = new Button
-                {
-                    Content = price.ToString(),
-                    Style = (Style)FindResource("GreenButton"),
-                    Margin = new Thickness(3),
-                    FontSize = 16,
-                    IsEnabled = theme != null && theme.GetQuestion(price) != null,
-                    Tag = (Theme: theme, Price: price)
-                };
-                btn.Click += CellButton_Click;
+			var grid = new UniformGrid
+			{
+				Rows = rowCount,
+				Columns = colCount,
+				Margin = new Thickness(0, 10, 0, 0)
+			};
 
-                if (theme != null)
-                    _cellButtons[$"{theme.Name}|{price}"] = btn;
+			for (int r = 0; r < rowCount; r++)
+			{
+				var theme = r < round.Themes.Count ? round.Themes[r] : null;
 
-                GameGrid.Children.Add(btn);
-            }
-        }
-    }
+				// --- Колонка темы ---
+				var themeBox = new Border
+				{
+					Background = new SolidColorBrush(Color.FromRgb(0x0B, 0x1E, 0x3A)),
+					CornerRadius = new CornerRadius(6),
+					Margin = new Thickness(3),
+					Child = new TextBlock
+					{
+						Text = theme?.Name ?? "—",
+						Foreground = (Brush)FindResource("AccentGold"),
+						FontWeight = FontWeights.Bold,
+						FontSize = 13,
+						TextWrapping = TextWrapping.Wrap,
+						TextAlignment = TextAlignment.Center,
+						VerticalAlignment = VerticalAlignment.Center,
+						HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+						Margin = new Thickness(8)
+					}
+				};
+				grid.Children.Add(themeBox);
 
-    // =====================================================================
-    // ОБРАБОТКА КЛИКА ПО ЯЧЕЙКЕ
-    // =====================================================================
-    private void CellButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is not Button btn) return;
-        if (btn.Tag is not ValueTuple<Theme?, int> tag) return;
-        if (tag.Item1 is null) return;
+				// --- Колонки с ценами ---
+				for (int c = 0; c < prices.Length; c++)
+				{
+					int price = prices[c];
+					var btn = new Button
+					{
+						Content = price.ToString(),
+						Style = (Style)FindResource("GreenButton"),
+						Margin = new Thickness(3),
+						FontSize = 16,
+						IsEnabled = theme != null && theme.GetQuestion(price) != null,
+						Tag = new CellTag
+						{
+							Round = round,
+							RoundIndex = ri,
+							Theme = theme,
+							Price = price
+						}
+					};
+					btn.Click += CellButton_Click;
 
-        var theme = tag.Item1;
-        int price = tag.Item2;
-        var q = theme.GetQuestion(price);
-        if (q is null) return;
+					if (theme != null)
+						_cellButtons[$"{ri}|{theme.Name}|{price}"] = btn;
 
-        // Блокируем кнопку, чтобы нельзя было нажать повторно
-        btn.IsEnabled = false;
-        _usedCells.Add($"{theme.Name}|{price}");
+					grid.Children.Add(btn);
+				}
+			}
 
-        ShowBoardWindow();
+			tab.Content = grid;
+			RoundsTabControl.Items.Add(tab);
+		}
+
+		if (RoundsTabControl.Items.Count > 0)
+			RoundsTabControl.SelectedIndex = 0;
+	}
+	// =====================================================================
+	// ФИНАЛ
+	// =====================================================================
+	private UIElement BuildFinalTabContent(Round round, int roundIndex)
+	{
+		_finalRound = round;
+		_activeFinalThemes = round.FinalThemes.ToList();
+
+		var root = new Grid { Margin = new Thickness(0, 10, 0, 0) };
+		root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+		root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+
+		// Верхняя панель — кнопка сброса
+		var toolbar = new StackPanel
+		{
+			Orientation = System.Windows.Controls.Orientation.Horizontal,
+			HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
+			Margin = new Thickness(0, 0, 0, 12)
+		};
+
+		var btnResetFinal = new Button
+		{
+			Content = "↻ СБРОСИТЬ ФИНАЛ",
+			Style = (Style)FindResource("BlueButton"),
+			Padding = new Thickness(16, 8, 16, 8),
+			FontSize = 13
+		};
+		btnResetFinal.Click += (_, _) =>
+		{
+			if (_finalRound is null)
+				return;
+
+			// Возвращаем полный список
+			_activeFinalThemes = _finalRound.FinalThemes.ToList();
+
+			// Снимаем блокировку "отыгранных" финальных вопросов
+			var toRemove = _usedCells.Where(k => k.StartsWith("final|")).ToList();
+			foreach (var k in toRemove)
+				_usedCells.Remove(k);
+
+			RenderFinalPanel();
+
+			// Скрываем панель ответа и отвязываем табло от финального вопроса
+			AdminAnswerPanel.Visibility = Visibility.Collapsed;
+			BtnShowAnswer.IsEnabled = false;
+			BtnHideQuestion.IsEnabled = false;
+		};
+		toolbar.Children.Add(btnResetFinal);
+
+		Grid.SetRow(toolbar, 0);
+		root.Children.Add(toolbar);
+
+		// Область отрисовки тем
+		var host = new Grid();
+		_finalThemesPanel = host;
+		Grid.SetRow(host, 1);
+		root.Children.Add(host);
+
+		RenderFinalPanel();
+		return root;
+	}
+
+	private void RenderFinalPanel()
+	{
+		if (_finalThemesPanel is null || _finalRound is null)
+			return;
+
+		_finalThemesPanel.Children.Clear();
+		int count = _activeFinalThemes.Count;
+
+		// --- Нет тем ---
+		if (count == 0)
+		{
+			_finalThemesPanel.Children.Add(new TextBlock
+			{
+				Text = "Все темы удалены.\nНажмите «Сбросить финал», чтобы вернуть список.",
+				Foreground = (Brush)FindResource("TextMuted"),
+				FontSize = 16,
+				HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+				VerticalAlignment = VerticalAlignment.Center,
+				TextAlignment = TextAlignment.Center,
+				TextWrapping = TextWrapping.Wrap
+			});
+			return;
+		}
+
+		// --- Одна тема — большая кнопка ---
+		if (count == 1)
+		{
+			var theme = _activeFinalThemes[0];
+			int roundIndex = _rounds.IndexOf(_finalRound);
+			string key = $"final|{roundIndex}|{theme.Name}";
+			bool used = _usedCells.Contains(key);
+
+			var bigBtn = new Button
+			{
+				Content = $"ИГРАТЬ\n\n{theme.Name}",
+				Style = (Style)FindResource("GoldButton"),
+				FontSize = 30,
+				FontWeight = FontWeights.Bold,
+				Padding = new Thickness(60, 40, 60, 40),
+				HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+				VerticalAlignment = VerticalAlignment.Center,
+				IsEnabled = !used,
+				Tag = theme
+			};
+			bigBtn.Click += FinalThemePlay_Click;
+
+			_finalThemesPanel.Children.Add(bigBtn);
+			return;
+		}
+
+		// --- Много тем — карточки с ✕ ---
+		var wrap = new WrapPanel
+		{
+			HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+			VerticalAlignment = VerticalAlignment.Top,
+			Orientation = System.Windows.Controls.Orientation.Vertical
+		};
+
+		foreach (var theme in _activeFinalThemes)
+			wrap.Children.Add(BuildFinalThemeCard(theme));
+
+		_finalThemesPanel.Children.Add(new ScrollViewer
+		{
+			VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+			Content = wrap
+		});
+	}
+
+	private Border BuildFinalThemeCard(FinalTheme theme)
+	{
+		var border = new Border
+		{
+			Background = new SolidColorBrush(Color.FromRgb(0x0B, 0x1E, 0x3A)),
+			CornerRadius = new CornerRadius(10),
+			Padding = new Thickness(18, 14, 12, 14),
+			Margin = new Thickness(6),
+			MinWidth = 180
+		};
+
+		var grid = new Grid();
+		grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+		grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+		var nameText = new TextBlock
+		{
+			Text = theme.Name,
+			Foreground = (Brush)FindResource("AccentGold"),
+			FontSize = 20,
+			FontWeight = FontWeights.Bold,
+			TextWrapping = TextWrapping.Wrap,
+			VerticalAlignment = VerticalAlignment.Center,
+			Margin = new Thickness(0, 0, 10, 0)
+		};
+		Grid.SetColumn(nameText, 0);
+		grid.Children.Add(nameText);
+
+		var btnRemove = new Button
+		{
+			Content = "✕",
+			Style = (Style)FindResource("RedButton"),
+			Width = 34,
+			Height = 34,
+			Padding = new Thickness(0),
+			FontSize = 16,
+			ToolTip = "Убрать тему из розыгрыша",
+			Tag = theme
+		};
+		btnRemove.Click += FinalThemeRemove_Click;
+		Grid.SetColumn(btnRemove, 1);
+		grid.Children.Add(btnRemove);
+
+		border.Child = grid;
+		return border;
+	}
+
+	private void FinalThemeRemove_Click(object sender, RoutedEventArgs e)
+	{
+		if (sender is not Button btn || btn.Tag is not FinalTheme theme)
+			return;
+
+		_activeFinalThemes.Remove(theme);
+		RenderFinalPanel();
+	}
+
+	private void FinalThemePlay_Click(object sender, RoutedEventArgs e)
+	{
+		if (sender is not Button btn || btn.Tag is not FinalTheme theme)
+			return;
+		if (_finalRound is null)
+			return;
+
+		int roundIndex = _rounds.IndexOf(_finalRound);
+		string key = $"final|{roundIndex}|{theme.Name}";
+
+		if (_usedCells.Contains(key))
+			return;
+		_usedCells.Add(key);
+
+		// Открываем вопрос на табло (цена 0 — финал не использует цены)
+		ShowBoardWindow();
+		_boardWindow!.ShowQuestion(
+			theme.Name,
+			0,
+			theme.Question ?? new ContentBlock(),
+			theme.Answer ?? new ContentBlock());
+		_boardWindow!.MarkCellUsed(theme.Name, 0);
+
+		// Панель ответа админа
+		ShowAdminAnswer(theme.Name, 0, theme.Answer);
+
+		BtnShowAnswer.IsEnabled = true;
+		BtnHideQuestion.IsEnabled = true;
+
+		// Больше не даём нажать эту же тему (до «Сбросить финал»)
+		btn.IsEnabled = false;
+	}
+	// =====================================================================
+	// ОБРАБОТКА КЛИКА ПО ЯЧЕЙКЕ
+	// =====================================================================
+	private void CellButton_Click(object sender, RoutedEventArgs e)
+	{
+		if (sender is not Button btn)
+			return;
+		if (btn.Tag is not CellTag tag)
+			return;
+		if (tag.Theme is null)
+			return;
+
+		var theme = tag.Theme;
+		int price = tag.Price;
+
+		var q = theme.GetQuestion(price);
+		if (q is null)
+			return;
+
+		string usedKey = $"{tag.RoundIndex}|{theme.Name}|{price}";
+		_usedCells.Add(usedKey);
+		btn.IsEnabled = false;
+
+		ShowBoardWindow();
 		_boardWindow!.ShowQuestion(
 			theme.Name,
 			price,
 			q.Question ?? new ContentBlock(),
 			q.Answer ?? new ContentBlock());
-
-		ShowAdminAnswer(theme.Name, price, q.Answer);
 		_boardWindow!.MarkCellUsed(theme.Name, price);
 
-        // Подставляем цену во все строки таблицы игроков
-        foreach (var player in _players)
-            player.BetInput = price.ToString();
+		// Цена во все строки игроков
+		foreach (var p in _players)
+			p.BetInput = price.ToString();
 
-        // Активируем кнопки управления табло
-        BtnShowAnswer.IsEnabled = true;
-        BtnHideQuestion.IsEnabled = true;
-    }
+		// Панель ответа админа
+		ShowAdminAnswer(theme.Name, price, q.Answer);
+
+		BtnShowAnswer.IsEnabled = true;
+		BtnHideQuestion.IsEnabled = true;
+	}
 
 
 
-    // =====================================================================
-    // ОКНО ТАБЛО
-    // =====================================================================
-    private void BtnOpenBoard_Click(object sender, RoutedEventArgs e) => ShowBoardWindow();
+	// =====================================================================
+	// ОКНО ТАБЛО
+	// =====================================================================
+	private void BtnOpenBoard_Click(object sender, RoutedEventArgs e) => ShowBoardWindow();
 
-    private void ShowBoardWindow()
-    {
-        if (_boardWindow is null || !_boardWindow.IsLoaded)
-        {
-            _boardWindow = new GameBoardWindow(_themes, Prices);
+	private void ShowBoardWindow()
+	{
+		if (_boardWindow is null || !_boardWindow.IsLoaded)
+		{
+			// ВРЕМЕННО (до этапа F): табло показывает первый не-финальный раунд
+			var firstRound = _rounds.FirstOrDefault(r => !r.IsFinal) ?? _rounds.FirstOrDefault();
+			var themes = firstRound?.Themes.ToList() ?? new List<Theme>();
+			var prices = firstRound?.Prices ?? new[] { 100, 200, 400, 700, 1000 };
 
-            // Восстанавливаем состояние сыгранных ячеек
-            foreach (var key in _usedCells)
-            {
-                var parts = key.Split('|');
-                if (parts.Length == 2 && int.TryParse(parts[1], out var p))
-                    _boardWindow.MarkCellUsed(parts[0], p);
-            }
+			_boardWindow = new GameBoardWindow(themes, prices);
 
-            _boardWindow.Closed += (_, _) =>
-            {
-                _boardWindow = null;
-                BtnShowAnswer.IsEnabled = false;
-                BtnHideQuestion.IsEnabled = false;
-            };
-            _boardWindow.Show();
+			// Восстановление затемнения сыгранных ячеек первого раунда
+			foreach (var key in _usedCells)
+			{
+				var parts = key.Split('|');
+				if (parts.Length == 3
+					&& int.TryParse(parts[0], out var rIdx)
+					&& rIdx == 0
+					&& int.TryParse(parts[2], out var p))
+				{
+					_boardWindow.MarkCellUsed(parts[1], p);
+				}
+			}
+
+			_boardWindow.Closed += (_, _) =>
+			{
+				_boardWindow = null;
+				BtnShowAnswer.IsEnabled = false;
+				BtnHideQuestion.IsEnabled = false;
+			};
+
+			_boardWindow.Show();
 			RefreshBoardPlayers();
 		}
-        else
-        {
-            _boardWindow.Activate();
-        }
-    }
+		else
+		{
+			_boardWindow.Activate();
+		}
+	}
 
-    // =====================================================================
-    // РАБОТА С ИГРОКАМИ
-    // =====================================================================
-    private void SyncPlayers(List<string> names)
+	// =====================================================================
+	// РАБОТА С ИГРОКАМИ
+	// =====================================================================
+	private void SyncPlayers(List<string> names)
     {
         // Удаляем тех, кого больше нет (на практике сервер их не удаляет)
         // Добавляем новых
@@ -503,7 +751,6 @@ public partial class MainWindow : Window
 	}
 	private void BtnEditThemes_Click(object sender, RoutedEventArgs e)
 	{
-		// Предупреждение — редактирование сбрасывает текущее поле
 		var confirm = MessageBox.Show(
 			"Изменения тем вступят в силу сразу и сбросят текущее игровое поле.\nПродолжить?",
 			"Редактор вопросов",
@@ -517,8 +764,7 @@ public partial class MainWindow : Window
 		if (result != true)
 			return;
 
-		// Перезагрузка из файла
-		var reloaded = QuestionsLoader.TryLoad(out var err);
+		var reloaded = QuestionsLoader.TryLoadRounds(out var err);
 		if (reloaded == null)
 		{
 			MessageBox.Show($"Не удалось перезагрузить вопросы:\n{err}",
@@ -526,23 +772,23 @@ public partial class MainWindow : Window
 			return;
 		}
 
-		_themes = reloaded;
-		CheckMediaOrWarn();
+		_rounds = reloaded;
 
-		// Пересборка поля и сброс состояния
-		BuildGameGrid();
+		// Сбрасываем состояние поля
+		_usedCells.Clear();
+		BuildRoundsUi();
 
-		// Табло держит старый список — пересоздадим его, если открыто
 		if (_boardWindow != null && _boardWindow.IsLoaded)
 		{
 			_boardWindow.Close();
 			_boardWindow = null;
 		}
 
-		// Скрыть панель ответа для админа, если была открыта
 		AdminAnswerPanel.Visibility = Visibility.Collapsed;
 		BtnShowAnswer.IsEnabled = false;
 		BtnHideQuestion.IsEnabled = false;
+
+		CheckMediaOrWarn();
 	}
 
 	/// <summary>
@@ -551,7 +797,7 @@ public partial class MainWindow : Window
 	/// </summary>
 	private void CheckMediaOrWarn()
 	{
-		var problems = QuestionsLoader.ValidateMedia(_themes);
+		var problems = QuestionsLoader.ValidateMedia(_rounds);
 		if (problems.Count == 0)
 			return;
 
@@ -591,6 +837,17 @@ public partial class MainWindow : Window
 		_adminAnswerMedia.Close();
 		base.OnClosed(e);
 	}
+
+	private void RoundsTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+	{
+		if (!ReferenceEquals(e.OriginalSource, RoundsTabControl))
+			return;
+
+		// При смене раунда прячем панель ответа админа — на этапе F синхронизируем табло
+		AdminAnswerPanel.Visibility = Visibility.Collapsed;
+		BtnShowAnswer.IsEnabled = false;
+		BtnHideQuestion.IsEnabled = false;
+	}
 }
 
 /// <summary>
@@ -601,4 +858,15 @@ public class ScorePayload
     public string Name { get; set; } = string.Empty;
     public int Score { get; set; }
     public bool Online { get; set; }
+}
+
+/// <summary>
+/// Информация, вложенная в Tag кнопки-ячейки игрового поля.
+/// </summary>
+internal class CellTag
+{
+	public Round Round = null!;
+	public int RoundIndex;
+	public Theme? Theme;
+	public int Price;
 }

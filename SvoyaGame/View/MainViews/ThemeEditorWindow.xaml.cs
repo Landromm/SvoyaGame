@@ -253,18 +253,59 @@ public partial class ThemeEditorWindow : Window
 		if (parsed.SequenceEqual(_selectedRound.Prices))
 			return;
 
-		// Сохраняем данные текущей темы перед перестройкой
+		// 1) Сохраняем данные текущей темы в UI-модель под СТАРЫМИ ценами
 		SaveUiToTheme(_selectedTheme);
 
-		_currentPrices = parsed;
-		_selectedRound.Prices = parsed;
+		var oldPrices = _selectedRound.Prices;
+		var newPrices = parsed;
 
-		// Нормализуем поле (убираем мусор)
+		// 2) Переносим вопросы во всех темах раунда: позиция i старой цены -> позиция i новой цены
+		foreach (var theme in _selectedRound.Themes)
+		{
+			// Собираем данные по позициям (старые цены)
+			var itemsByPosition = new List<QuestionItem?>();
+			for (int i = 0; i < oldPrices.Length; i++)
+			{
+				var oldKey = oldPrices[i].ToString();
+				theme.Questions.TryGetValue(oldKey, out var item);
+				itemsByPosition.Add(item);
+			}
+
+			// Раскладываем по новым ценам (позиция сохраняется)
+			var newQuestions = new Dictionary<string, QuestionItem>();
+			for (int i = 0; i < newPrices.Length; i++)
+			{
+				var newKey = newPrices[i].ToString();
+
+				QuestionItem? item = (i < itemsByPosition.Count) ? itemsByPosition[i] : null;
+				if (item == null)
+				{
+					item = new QuestionItem
+					{
+						Question = new ContentBlock(),
+						Answer = new ContentBlock()
+					};
+				}
+				newQuestions[newKey] = item;
+			}
+
+			theme.Questions.Clear();
+			foreach (var kv in newQuestions)
+				theme.Questions[kv.Key] = kv.Value;
+		}
+
+		// 3) Обновляем состояние
+		_currentPrices = newPrices;
+		_selectedRound.Prices = newPrices;
+
+		// 4) Нормализуем поле ввода
 		_loadingUi = true;
-		TxtPrices.Text = string.Join(", ", parsed);
+		TxtPrices.Text = string.Join(", ", newPrices);
 		_loadingUi = false;
 
+		// 5) Перестраиваем UI — уже с перенесёнными данными
 		BuildQuestionRowsForTheme(_selectedTheme);
+		_isDirty = true;
 	}
 
 	// =====================================================================
@@ -1062,20 +1103,6 @@ public partial class ThemeEditorWindow : Window
 						"Редактор", MessageBoxButton.OK, MessageBoxImage.Warning);
 					return;
 				}
-			}
-		}
-
-		// ---- Уборка устаревших ключей в вопросах ----
-		foreach (var r in _rounds)
-		{
-			if (r.IsFinal)
-				continue;
-			var keys = r.Prices.Select(p => p.ToString()).ToHashSet();
-			foreach (var theme in r.Themes)
-			{
-				var toRemove = theme.Questions.Keys.Where(k => !keys.Contains(k)).ToList();
-				foreach (var k in toRemove)
-					theme.Questions.Remove(k);
 			}
 		}
 

@@ -145,7 +145,40 @@
                 </Setter.Value>
             </Setter>
         </Style>
-    </Window.Resources>
+		<Style x:Key="DarkTabItem" TargetType="TabItem">
+			<Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+			<Setter Property="FontWeight" Value="Bold"/>
+			<Setter Property="FontSize" Value="14"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="TabItem">
+						<Border x:Name="bd"
+                        Background="#0B1E3A"
+                        CornerRadius="8,8,0,0"
+                        Padding="18,8"
+                        Margin="0,0,4,0">
+							<ContentPresenter ContentSource="Header"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"/>
+						</Border>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsSelected" Value="True">
+								<Setter TargetName="bd" Property="Background" Value="{StaticResource AccentGold}"/>
+								<Setter Property="Foreground" Value="#0B1E3A"/>
+							</Trigger>
+							<MultiTrigger>
+								<MultiTrigger.Conditions>
+									<Condition Property="IsMouseOver" Value="True"/>
+									<Condition Property="IsSelected" Value="False"/>
+								</MultiTrigger.Conditions>
+								<Setter TargetName="bd" Property="Background" Value="#1A3A66"/>
+							</MultiTrigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+	</Window.Resources>
 
     <!-- ==================== ОСНОВНАЯ СЕТКА ==================== -->
     <Grid Margin="12">
@@ -410,9 +443,9 @@
 
 			<!-- Игровое поле (было) -->
 			<Border Grid.Row="0"
-            Background="{StaticResource BgPanel}"
-            CornerRadius="10"
-            Padding="14">
+                Background="{StaticResource BgPanel}"
+                CornerRadius="10"
+                Padding="14">
 				<Grid>
 					<Grid.RowDefinitions>
 						<RowDefinition Height="Auto"/>
@@ -427,10 +460,12 @@
                        HorizontalAlignment="Center"
                        Margin="0,0,0,12"/>
 
-					<UniformGrid x:Name="GameGrid"
-                         Grid.Row="1"
-                         Rows="5"
-                         Columns="6"/>
+					<TabControl x:Name="RoundsTabControl"
+                        Grid.Row="1"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        ItemContainerStyle="{StaticResource DarkTabItem}"
+                        SelectionChanged="RoundsTabControl_SelectionChanged"/>
 				</Grid>
 			</Border>
 
