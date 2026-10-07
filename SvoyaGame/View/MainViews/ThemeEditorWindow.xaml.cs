@@ -26,6 +26,10 @@ public partial class ThemeEditorWindow : Window
 	private readonly List<ContentRowControls> _questionRows = new();
 	private readonly List<ContentRowControls> _answerRows = new();
 
+	private ContentRowControls? _finalQuestionRow;
+	private ContentRowControls? _finalAnswerRow;
+	private FinalTheme? _selectedFinalTheme;
+
 	private readonly MediaPlayer _previewPlayer = new();
 
 	private Round? _selectedRound;
@@ -117,14 +121,23 @@ public partial class ThemeEditorWindow : Window
 		try
 		{
 			_selectedTheme = null;
+			_selectedFinalTheme = null;
+
 			ThemesList.ItemsSource = null;
 			TxtThemeName.Text = "";
 			TxtRoundName.Text = "";
 			TxtPrices.Text = "";
-			BuildQuestionRowsForTheme(null);
+
+			// Полный сброс правой области
+			QuestionsPanel.Children.Clear();
+			_questionRows.Clear();
+			_answerRows.Clear();
+			_finalQuestionRow = null;
+			_finalAnswerRow = null;
 
 			if (round == null)
 			{
+				_currentPrices = Array.Empty<int>();
 				TxtRoundName.IsEnabled = false;
 				TxtPrices.IsEnabled = false;
 				TxtThemeName.IsEnabled = false;
@@ -135,40 +148,51 @@ public partial class ThemeEditorWindow : Window
 			TxtRoundName.Text = round.Name;
 			TxtRoundName.IsEnabled = true;
 
+			// ---------- ФИНАЛ ----------
 			if (round.IsFinal)
 			{
-				// Финал — редактирование тем появится на этапе C
-				TxtPrices.Text = "";
+				TxtPrices.Text = "(финал — цены не используются)";
 				TxtPrices.IsEnabled = false;
-				TxtThemeName.IsEnabled = false;
-				ThemesList.IsEnabled = false;
+				TxtThemeName.IsEnabled = true;
+				ThemesList.IsEnabled = true;
 				_currentPrices = Array.Empty<int>();
-				// Заглушка в области вопросов
-				QuestionsPanel.Children.Clear();
-				QuestionsPanel.Children.Add(new TextBlock
+
+				ThemesList.ItemsSource = round.FinalThemes;
+
+				if (round.FinalThemes.Count > 0)
 				{
-					Text = "Редактирование финала появится на следующем этапе.\n" +
-						   "Темы финала и их вопросы пока сохраняются из исходного файла без изменений.",
-					Foreground = (Brush)FindResource("TextMuted"),
-					FontSize = 14,
-					TextWrapping = TextWrapping.Wrap,
-					Margin = new Thickness(8)
-				});
+					_selectedFinalTheme = round.FinalThemes[0];
+					ThemesList.SelectedItem = _selectedFinalTheme;
+					TxtThemeName.Text = _selectedFinalTheme.Name;
+					BuildFinalRows(_selectedFinalTheme);
+				}
+				else
+				{
+					TxtThemeName.Text = "";
+					BuildFinalRows(null);
+				}
 				return;
 			}
 
+			// ---------- ОБЫЧНЫЙ РАУНД ----------
 			TxtPrices.Text = string.Join(", ", round.Prices);
 			TxtPrices.IsEnabled = true;
 			TxtThemeName.IsEnabled = true;
 			ThemesList.IsEnabled = true;
+
 			_currentPrices = round.Prices;
+
 			ThemesList.ItemsSource = round.Themes;
 
 			if (round.Themes.Count > 0)
-				ThemesList.SelectedIndex = 0;
+			{
+				_selectedTheme = round.Themes[0];
+				ThemesList.SelectedItem = _selectedTheme;
+				TxtThemeName.Text = _selectedTheme.Name;
+				BuildQuestionRowsForTheme(_selectedTheme);
+			}
 			else
 			{
-				_selectedTheme = null;
 				TxtThemeName.Text = "";
 				BuildQuestionRowsForTheme(null);
 			}
@@ -186,12 +210,13 @@ public partial class ThemeEditorWindow : Window
 
 		round.Name = TxtRoundName.Text;
 
-		if (!round.IsFinal)
+		if (round.IsFinal)
 		{
-			// Сохраняем данные текущей темы
+			SaveUiToFinalTheme(_selectedFinalTheme);
+		}
+		else
+		{
 			SaveUiToTheme(_selectedTheme);
-
-			// Цены применим через LostFocus, но на случай — ещё раз при сохранении
 			var parsed = ParsePrices(TxtPrices.Text);
 			if (parsed.Length > 0)
 				round.Prices = parsed;
@@ -250,21 +275,50 @@ public partial class ThemeEditorWindow : Window
 		if (_loadingUi)
 			return;
 
-		SaveUiToTheme(_selectedTheme);
-		_selectedTheme = ThemesList.SelectedItem as Theme;
+		if (_selectedRound?.IsFinal == true)
+		{
+			SaveUiToFinalTheme(_selectedFinalTheme);
+			_selectedFinalTheme = ThemesList.SelectedItem as FinalTheme;
 
-		_loadingUi = true;
-		TxtThemeName.Text = _selectedTheme?.Name ?? "";
-		_loadingUi = false;
+			_loadingUi = true;
+			try
+			{ TxtThemeName.Text = _selectedFinalTheme?.Name ?? ""; }
+			finally { _loadingUi = false; }
 
-		BuildQuestionRowsForTheme(_selectedTheme);
+			BuildFinalRows(_selectedFinalTheme);
+		}
+		else
+		{
+			SaveUiToTheme(_selectedTheme);
+			_selectedTheme = ThemesList.SelectedItem as Theme;
+
+			_loadingUi = true;
+			try
+			{ TxtThemeName.Text = _selectedTheme?.Name ?? ""; }
+			finally { _loadingUi = false; }
+
+			BuildQuestionRowsForTheme(_selectedTheme);
+		}
 	}
 
 	private void TxtThemeName_TextChanged(object sender, TextChangedEventArgs e)
 	{
-		if (_loadingUi || _selectedTheme == null)
+		if (_loadingUi)
 			return;
-		_selectedTheme.Name = TxtThemeName.Text;
+
+		if (_selectedRound?.IsFinal == true)
+		{
+			if (_selectedFinalTheme == null)
+				return;
+			_selectedFinalTheme.Name = TxtThemeName.Text;
+		}
+		else
+		{
+			if (_selectedTheme == null)
+				return;
+			_selectedTheme.Name = TxtThemeName.Text;
+		}
+
 		_isDirty = true;
 
 		int idx = ThemesList.SelectedIndex;
@@ -331,7 +385,97 @@ public partial class ThemeEditorWindow : Window
 
 		LoadThemeToUi(theme);
 	}
+	private void BuildFinalRows(FinalTheme? theme)
+	{
+		QuestionsPanel.Children.Clear();
+		_questionRows.Clear();
+		_answerRows.Clear();
+		_finalQuestionRow = null;
+		_finalAnswerRow = null;
 
+		if (_selectedRound?.IsFinal != true)
+			return;
+
+		// Внешний блок
+		var outer = new Border
+		{
+			Background = new SolidColorBrush(Color.FromRgb(0x0B, 0x1E, 0x3A)),
+			CornerRadius = new CornerRadius(8),
+			Padding = new Thickness(12),
+			Margin = new Thickness(0, 0, 0, 10)
+		};
+
+		var grid = new Grid();
+		grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(70) });
+		grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+		grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+		// Метка "ФИНАЛ" вместо цены
+		var label = new TextBlock
+		{
+			Text = "ФИНАЛ",
+			Foreground = (Brush)FindResource("AccentGold"),
+			FontSize = 14,
+			FontWeight = FontWeights.Bold,
+			VerticalAlignment = VerticalAlignment.Center,
+			HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+			TextAlignment = TextAlignment.Center
+		};
+		Grid.SetColumn(label, 0);
+		grid.Children.Add(label);
+
+		var qRow = BuildContentRow("ВОПРОС");
+		Grid.SetColumn(qRow.Panel, 1);
+		grid.Children.Add(qRow.Panel);
+		_finalQuestionRow = qRow;
+
+		var aRow = BuildContentRow("ОТВЕТ");
+		Grid.SetColumn(aRow.Panel, 2);
+		grid.Children.Add(aRow.Panel);
+		_finalAnswerRow = aRow;
+
+		outer.Child = grid;
+		QuestionsPanel.Children.Add(outer);
+
+		// Загружаем данные темы
+		LoadFinalThemeToUi(theme);
+	}
+	private void LoadFinalThemeToUi(FinalTheme? theme)
+	{
+		_loadingUi = true;
+		try
+		{
+			if (theme == null || _finalQuestionRow == null || _finalAnswerRow == null)
+			{
+				if (_finalQuestionRow != null)
+					ResetRow(_finalQuestionRow);
+				if (_finalAnswerRow != null)
+					ResetRow(_finalAnswerRow);
+				return;
+			}
+
+			LoadRow(_finalQuestionRow, theme.Question);
+			LoadRow(_finalAnswerRow, theme.Answer);
+		}
+		finally
+		{
+			_loadingUi = false;
+		}
+	}
+
+	private void SaveUiToFinalTheme(FinalTheme? theme)
+	{
+		if (theme == null)
+			return;
+		if (_finalQuestionRow == null || _finalAnswerRow == null)
+			return;
+
+		theme.Question ??= new ContentBlock();
+		theme.Answer ??= new ContentBlock();
+
+		ApplyRow(_finalQuestionRow, theme.Question);
+		ApplyRow(_finalAnswerRow, theme.Answer);
+	}
 	private ContentRowControls BuildContentRow(string label)
 	{
 		var ctrl = new ContentRowControls();
@@ -747,16 +891,34 @@ public partial class ThemeEditorWindow : Window
 	// =====================================================================
 	private void BtnAddTheme_Click(object sender, RoutedEventArgs e)
 	{
-		if (_selectedRound == null || _selectedRound.IsFinal)
+		if (_selectedRound == null)
 			return;
 
+		if (_selectedRound.IsFinal)
+		{
+			SaveUiToFinalTheme(_selectedFinalTheme);
+
+			var ft = new FinalTheme
+			{
+				Name = $"Тема {_selectedRound.FinalThemes.Count + 1}",
+				Question = new ContentBlock(),
+				Answer = new ContentBlock()
+			};
+			_selectedRound.FinalThemes.Add(ft);
+
+			ThemesList.ItemsSource = null;
+			ThemesList.ItemsSource = _selectedRound.FinalThemes;
+			ThemesList.SelectedItem = ft;
+			_isDirty = true;
+			return;
+		}
+
+		// Обычный раунд
 		SaveUiToTheme(_selectedTheme);
 
 		var theme = CreateEmptyTheme("Новая тема", _selectedRound.Prices);
 		_selectedRound.Themes.Add(theme);
 
-		// Гарантированное обновление ListBox:
-		// перепривязываем источник на актуальную ObservableCollection раунда.
 		ThemesList.ItemsSource = null;
 		ThemesList.ItemsSource = _selectedRound.Themes;
 
@@ -766,8 +928,41 @@ public partial class ThemeEditorWindow : Window
 
 	private void BtnRemoveTheme_Click(object sender, RoutedEventArgs e)
 	{
-		if (_selectedRound == null || _selectedRound.IsFinal)
+		if (_selectedRound == null)
 			return;
+
+		// ---- Финал ----
+		if (_selectedRound.IsFinal)
+		{
+			if (_selectedRound.FinalThemes.Count <= 1)
+			{
+				MessageBox.Show("Нельзя удалить последнюю тему финала.",
+					"Редактор", MessageBoxButton.OK, MessageBoxImage.Information);
+				return;
+			}
+			if (_selectedFinalTheme == null)
+				return;
+
+			var confirm = MessageBox.Show(
+				$"Удалить финальную тему «{_selectedFinalTheme.Name}»?",
+				"Подтверждение",
+				MessageBoxButton.YesNo, MessageBoxImage.Question);
+			if (confirm != MessageBoxResult.Yes)
+				return;
+
+			int idx = ThemesList.SelectedIndex;
+			_selectedRound.FinalThemes.Remove(_selectedFinalTheme);
+			_selectedFinalTheme = null;
+
+			ThemesList.ItemsSource = null;
+			ThemesList.ItemsSource = _selectedRound.FinalThemes;
+
+			_isDirty = true;
+			ThemesList.SelectedIndex = Math.Max(0, idx - 1);
+			return;
+		}
+
+		// ---- Обычный раунд ----
 		if (_selectedRound.Themes.Count <= 1)
 		{
 			MessageBox.Show("Нельзя удалить последнюю тему в раунде.",
@@ -777,20 +972,22 @@ public partial class ThemeEditorWindow : Window
 		if (_selectedTheme == null)
 			return;
 
-		var confirm = MessageBox.Show(
+		var c2 = MessageBox.Show(
 			$"Удалить тему «{_selectedTheme.Name}»?",
 			"Подтверждение",
 			MessageBoxButton.YesNo, MessageBoxImage.Question);
-		if (confirm != MessageBoxResult.Yes)
+		if (c2 != MessageBoxResult.Yes)
 			return;
 
-		int idx = ThemesList.SelectedIndex;
+		int i2 = ThemesList.SelectedIndex;
 		_selectedRound.Themes.Remove(_selectedTheme);
+		_selectedTheme = null;
+
 		ThemesList.ItemsSource = null;
 		ThemesList.ItemsSource = _selectedRound.Themes;
-		_selectedTheme = null;
+
 		_isDirty = true;
-		ThemesList.SelectedIndex = Math.Max(0, idx - 1);
+		ThemesList.SelectedIndex = Math.Max(0, i2 - 1);
 	}
 
 	// =====================================================================
@@ -832,6 +1029,39 @@ public partial class ThemeEditorWindow : Window
 				MessageBox.Show($"Раунд «{r.Name}»: у всех тем должны быть имена.",
 					"Редактор", MessageBoxButton.OK, MessageBoxImage.Warning);
 				return;
+			}
+		}
+
+		// ---- Валидация финала ----
+		foreach (var r in _rounds.Where(x => x.IsFinal))
+		{
+			if (r.FinalThemes.Count == 0)
+			{
+				MessageBox.Show($"Финал «{r.Name}»: добавьте хотя бы одну тему.",
+					"Редактор", MessageBoxButton.OK, MessageBoxImage.Warning);
+				return;
+			}
+
+			foreach (var ft in r.FinalThemes)
+			{
+				if (string.IsNullOrWhiteSpace(ft.Name))
+				{
+					MessageBox.Show($"Финал «{r.Name}»: у всех финальных тем должны быть имена.",
+						"Редактор", MessageBoxButton.OK, MessageBoxImage.Warning);
+					return;
+				}
+				if (ft.Question == null || ft.Question.IsEmpty)
+				{
+					MessageBox.Show($"Финал «{r.Name}» / тема «{ft.Name}»: заполните вопрос.",
+						"Редактор", MessageBoxButton.OK, MessageBoxImage.Warning);
+					return;
+				}
+				if (ft.Answer == null || ft.Answer.IsEmpty)
+				{
+					MessageBox.Show($"Финал «{r.Name}» / тема «{ft.Name}»: заполните ответ.",
+						"Редактор", MessageBoxButton.OK, MessageBoxImage.Warning);
+					return;
+				}
 			}
 		}
 
