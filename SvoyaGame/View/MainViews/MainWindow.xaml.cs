@@ -245,21 +245,26 @@ public partial class MainWindow : Window
 			if (_finalRound is null)
 				return;
 
-			// Возвращаем полный список
 			_activeFinalThemes = _finalRound.FinalThemes.ToList();
 
-			// Снимаем блокировку "отыгранных" финальных вопросов
 			var toRemove = _usedCells.Where(k => k.StartsWith("final|")).ToList();
 			foreach (var k in toRemove)
 				_usedCells.Remove(k);
 
 			RenderFinalPanel();
 
-			// Скрываем панель ответа и отвязываем табло от финального вопроса
 			AdminAnswerPanel.Visibility = Visibility.Collapsed;
 			BtnShowAnswer.IsEnabled = false;
 			BtnHideQuestion.IsEnabled = false;
+
+			// Если табло в режиме финала и без вопроса — обновляем список
+			if (_boardWindow is { IsLoaded: true } && !_boardWindow.IsQuestionVisible)
+			{
+				int roundIndex = _rounds.IndexOf(_finalRound);
+				_boardWindow.ShowFinal(roundIndex, _activeFinalThemes, _usedCells);
+			}
 		};
+
 		toolbar.Children.Add(btnResetFinal);
 
 		Grid.SetRow(toolbar, 0);
@@ -397,6 +402,13 @@ public partial class MainWindow : Window
 
 		_activeFinalThemes.Remove(theme);
 		RenderFinalPanel();
+
+		// Обновляем табло, если оно в режиме финала
+		if (_boardWindow is { IsLoaded: true } && !_boardWindow.IsQuestionVisible)
+		{
+			int roundIndex = _rounds.IndexOf(_finalRound!);
+			_boardWindow.ShowFinal(roundIndex, _activeFinalThemes, _usedCells);
+		}
 	}
 
 	private void FinalThemePlay_Click(object sender, RoutedEventArgs e)
@@ -413,14 +425,18 @@ public partial class MainWindow : Window
 			return;
 		_usedCells.Add(key);
 
-		// Открываем вопрос на табло (цена 0 — финал не использует цены)
 		ShowBoardWindow();
+
+		// Если табло ещё не в режиме финала — переведём его туда (без затемнения: MarkFinalThemePlayed всё сделает)
+		_boardWindow!.ShowFinal(roundIndex, _activeFinalThemes, _usedCells);
+
+		// Показываем вопрос
 		_boardWindow!.ShowQuestion(
 			theme.Name,
 			0,
 			theme.Question ?? new ContentBlock(),
-			theme.Answer ?? new ContentBlock());
-		_boardWindow!.MarkCellUsed(theme.Name, 0);
+			theme.Answer ?? new ContentBlock(),
+			isFinal: true);
 
 		// Панель ответа админа
 		ShowAdminAnswer(theme.Name, 0, theme.Answer);
@@ -428,7 +444,6 @@ public partial class MainWindow : Window
 		BtnShowAnswer.IsEnabled = true;
 		BtnHideQuestion.IsEnabled = true;
 
-		// Больше не даём нажать эту же тему (до «Сбросить финал»)
 		btn.IsEnabled = false;
 	}
 	// =====================================================================
@@ -454,7 +469,7 @@ public partial class MainWindow : Window
 		_usedCells.Add(usedKey);
 		btn.IsEnabled = false;
 
-		ShowBoardWindow();
+			ShowBoardWindow();
 		_boardWindow!.ShowQuestion(
 			theme.Name,
 			price,
@@ -473,36 +488,30 @@ public partial class MainWindow : Window
 		BtnHideQuestion.IsEnabled = true;
 	}
 
-
-
 	// =====================================================================
 	// ОКНО ТАБЛО
 	// =====================================================================
-	private void BtnOpenBoard_Click(object sender, RoutedEventArgs e) => ShowBoardWindow();
+	private void BtnOpenBoard_Click(object sender, RoutedEventArgs e)
+	{
+		try
+		{
+			ShowBoardWindow();
+		}
+		catch (Exception ex)
+		{
+			MessageBox.Show(
+				$"Не удалось открыть табло:\n\n{ex.GetType().Name}: {ex.Message}\n\n{ex.StackTrace}",
+				"Ошибка",
+				MessageBoxButton.OK,
+				MessageBoxImage.Error);
+		}
+	}
 
 	private void ShowBoardWindow()
 	{
 		if (_boardWindow is null || !_boardWindow.IsLoaded)
 		{
-			// ВРЕМЕННО (до этапа F): табло показывает первый не-финальный раунд
-			var firstRound = _rounds.FirstOrDefault(r => !r.IsFinal) ?? _rounds.FirstOrDefault();
-			var themes = firstRound?.Themes.ToList() ?? new List<Theme>();
-			var prices = firstRound?.Prices ?? new[] { 100, 200, 400, 700, 1000 };
-
-			_boardWindow = new GameBoardWindow(themes, prices);
-
-			// Восстановление затемнения сыгранных ячеек первого раунда
-			foreach (var key in _usedCells)
-			{
-				var parts = key.Split('|');
-				if (parts.Length == 3
-					&& int.TryParse(parts[0], out var rIdx)
-					&& rIdx == 0
-					&& int.TryParse(parts[2], out var p))
-				{
-					_boardWindow.MarkCellUsed(parts[1], p);
-				}
-			}
+			_boardWindow = new GameBoardWindow();
 
 			_boardWindow.Closed += (_, _) =>
 			{
@@ -512,6 +521,7 @@ public partial class MainWindow : Window
 			};
 
 			_boardWindow.Show();
+			SyncBoardToCurrentTab();
 			RefreshBoardPlayers();
 		}
 		else
@@ -520,6 +530,30 @@ public partial class MainWindow : Window
 		}
 	}
 
+	/// <summary>
+	/// Синхронизирует табло с текущей активной вкладкой админа.
+	/// Вызывается при открытии табло и при смене вкладки.
+	/// </summary>
+	private void SyncBoardToCurrentTab()
+	{
+		if (_boardWindow is null || !_boardWindow.IsLoaded)
+			return;
+
+		int idx = RoundsTabControl.SelectedIndex;
+		if (idx < 0 || idx >= _rounds.Count)
+			return;
+
+		var round = _rounds[idx];
+
+		if (round.IsFinal)
+		{
+			_boardWindow.ShowFinal(idx, _activeFinalThemes, _usedCells);
+		}
+		else
+		{
+			_boardWindow.ShowRound(idx, round, _usedCells);
+		}
+	}
 	// =====================================================================
 	// РАБОТА С ИГРОКАМИ
 	// =====================================================================
@@ -658,6 +692,13 @@ public partial class MainWindow : Window
 
 		AdminAnswerPanel.Visibility = Visibility.Collapsed;
 		_adminAnswerMedia.Stop();
+
+		// Синхронизируем табло с текущей активной вкладкой админа —
+		// за время показа вопроса админ мог переключить раунд.
+		if (_boardWindow is { IsLoaded: true })
+		{
+			SyncBoardToCurrentTab();
+		}
 	}
 
 	private void ShowAdminAnswer(string themeName, int price, ContentBlock? answer)
@@ -843,10 +884,20 @@ public partial class MainWindow : Window
 		if (!ReferenceEquals(e.OriginalSource, RoundsTabControl))
 			return;
 
-		// При смене раунда прячем панель ответа админа — на этапе F синхронизируем табло
+		// Если на табло открыт вопрос — не трогаем ни панель ответа, ни кнопки.
+		// Админ должен иметь возможность дочитать ответ и свернуть вопрос.
+		if (_boardWindow is { IsLoaded: true } && _boardWindow.IsQuestionVisible)
+			return;
+
+		// Иначе — сброс UI и синхронизация табло с новой вкладкой
 		AdminAnswerPanel.Visibility = Visibility.Collapsed;
 		BtnShowAnswer.IsEnabled = false;
 		BtnHideQuestion.IsEnabled = false;
+
+		if (_boardWindow is { IsLoaded: true })
+		{
+			SyncBoardToCurrentTab();
+		}
 	}
 }
 

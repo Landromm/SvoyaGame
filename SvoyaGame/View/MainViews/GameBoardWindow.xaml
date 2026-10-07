@@ -118,25 +118,24 @@
 				</Grid.RowDefinitions>
 
 				<TextBlock Grid.Row="0"
-                       Text="🎄 СВОЯ ИГРА 🎄"
-                       Foreground="{StaticResource AccentGold}"
-                       FontSize="34"
-                       FontWeight="Bold"
-                       HorizontalAlignment="Center"
-                       Margin="0,18,0,10"/>
+				   Text="🎄 СВОЯ ИГРА 🎄"
+				   Foreground="{StaticResource AccentGold}"
+				   FontSize="34"
+				   FontWeight="Bold"
+				   HorizontalAlignment="Center"
+				   Margin="0,18,0,10"/>
 
-				<UniformGrid x:Name="BoardGrid"
-                         Grid.Row="1"
-                         Rows="5"
-                         Columns="6"
-                         Margin="14"/>
+				<!-- Сюда динамически подставляется UniformGrid (раунд) или WrapPanel (финал) -->
+				<Grid x:Name="BoardHost"
+				  Grid.Row="1"
+				  Margin="14"/>
 
 				<TextBlock Grid.Row="2"
-                       Text="Выберите тему и стоимость"
-                       Foreground="#9FB3C8"
-                       FontSize="18"
-                       HorizontalAlignment="Center"
-                       Margin="0,0,0,18"/>
+					Text="Выберите тему и стоимость"
+					Foreground="#9FB3C8"
+					FontSize="18"
+					HorizontalAlignment="Center"
+					Margin="0,0,0,18"/>
 			</Grid>
 
 			<!-- =============== РЕЖИМ 2: ПОКАЗ ВОПРОСА =============== -->
@@ -148,23 +147,24 @@
 				</Grid.RowDefinitions>
 
 				<StackPanel Grid.Row="0"
-                        Orientation="Horizontal"
-                        HorizontalAlignment="Center"
-                        Margin="0,24,0,10">
+            Orientation="Horizontal"
+            HorizontalAlignment="Center"
+            Margin="0,24,0,10">
 					<TextBlock x:Name="HeaderTheme"
-                           Text="Тема"
-                           Foreground="{StaticResource AccentGold}"
-                           FontSize="28"
-                           FontWeight="Bold"/>
-					<TextBlock Text=" • "
-                           Foreground="{StaticResource AccentGold}"
-                           FontSize="28"
-                           FontWeight="Bold"/>
+               Text="Тема"
+               Foreground="{StaticResource AccentGold}"
+               FontSize="28"
+               FontWeight="Bold"/>
+					<TextBlock x:Name="HeaderSeparator"
+               Text=" • "
+               Foreground="{StaticResource AccentGold}"
+               FontSize="28"
+               FontWeight="Bold"/>
 					<TextBlock x:Name="HeaderPrice"
-                           Text="100"
-                           Foreground="{StaticResource AccentGreen}"
-                           FontSize="28"
-                           FontWeight="Bold"/>
+               Text="100"
+               Foreground="{StaticResource AccentGreen}"
+               FontSize="28"
+               FontWeight="Bold"/>
 				</StackPanel>
 
 				<Border Grid.Row="1"
