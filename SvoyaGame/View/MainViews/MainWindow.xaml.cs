@@ -31,14 +31,18 @@ public partial class MainWindow : Window
 	private List<FinalTheme> _activeFinalThemes = new();
 	private Panel? _finalThemesPanel;
 	private Round? _finalRound;
+	private bool _finalActive;
+	private readonly ObservableCollection<FinalAnswerView> _finalAnswers = new();
+	private readonly HashSet<string> _finalBetsApplied = new();
 	private readonly HashSet<string> _usedCells = new(); // "Тема|Цена"
 	private readonly MediaPlayer _adminAnswerMedia = new();
 	private readonly MediaPlayer _adminQuestionMedia = new();
 	private string? _currentRoom;
     private GameBoardWindow? _boardWindow;
+	private Button? _finalEndButton;
 
-    // Хранит ссылки на кнопки ячеек: ключ = "тема|цена"
-    private readonly Dictionary<string, System.Windows.Controls.Button> _cellButtons = new();
+	// Хранит ссылки на кнопки ячеек: ключ = "тема|цена"
+	private readonly Dictionary<string, System.Windows.Controls.Button> _cellButtons = new();
 
     public MainWindow()
     {
@@ -53,6 +57,7 @@ public partial class MainWindow : Window
 		}
 
 		GridPlayers.ItemsSource = _players;
+		FinalAnswersList.ItemsSource = _finalAnswers;
 		BuildRoundsUi();
 		CheckMediaOrWarn();
 
@@ -114,7 +119,14 @@ public partial class MainWindow : Window
             });
             return Task.CompletedTask;
         });
-    }
+
+		_client.On("onFinalAnswersUpdated", response =>
+		{
+			var list = response.GetValue<List<System.Text.Json.JsonElement>>(0);
+			Dispatcher.Invoke(() => UpdateFinalAnswers(list));
+			return Task.CompletedTask;
+		});
+	}
 
 	// =====================================================================
 	// ПОСТРОЕНИЕ ИГРОВОГО ПОЛЯ 5×6
@@ -241,8 +253,35 @@ public partial class MainWindow : Window
 			Padding = new Thickness(16, 8, 16, 8),
 			FontSize = 13
 		};
+		var btnEndFinal = new Button
+		{
+			Content = "✓ ЗАВЕРШИТЬ ФИНАЛ",
+			Style = (Style)FindResource("GreenButton"),
+			Padding = new Thickness(16, 8, 16, 8),
+			FontSize = 13,
+			Margin = new Thickness(10, 0, 10, 0),
+			Visibility = Visibility.Collapsed  // покажем при старте финала
+		};
+		btnEndFinal.Click += BtnEndFinal_Click;
+		toolbar.Children.Add(btnEndFinal);
+		_finalEndButton = btnEndFinal;
+		
 		btnResetFinal.Click += (_, _) =>
 		{
+			if (_finalActive && !string.IsNullOrEmpty(_currentRoom) && _client.Connected)
+			{
+				_ = _client.EmitAsync("endFinal", new object[]
+				{
+		new { roomNumber = _currentRoom }
+				});
+			}
+			_finalActive = false;
+			_finalBetsApplied.Clear();
+			_finalAnswers.Clear();
+			FinalAnswersPanel.Visibility = Visibility.Collapsed;
+			if (_finalEndButton != null)
+				_finalEndButton.Visibility = Visibility.Collapsed;
+
 			if (_finalRound is null)
 				return;
 
@@ -328,6 +367,8 @@ public partial class MainWindow : Window
 			bigBtn.Click += FinalThemePlay_Click;
 
 			_finalThemesPanel.Children.Add(bigBtn);
+			// Осталась одна тема → запускаем финальную фазу у игроков
+			StartFinalPhase();
 			return;
 		}
 
@@ -347,6 +388,30 @@ public partial class MainWindow : Window
 			VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
 			Content = wrap
 		});
+	}
+
+	private void StartFinalPhase()
+	{
+		if (_finalActive)
+			return;
+		if (string.IsNullOrEmpty(_currentRoom) || !_client.Connected)
+			return;
+
+		_finalActive = true;
+		_finalBetsApplied.Clear();
+		_finalAnswers.Clear();
+
+		_ = _client.EmitAsync("startFinal", new object[]
+		{
+		new { roomNumber = _currentRoom }
+		});
+
+		FinalAnswersPanel.Visibility = Visibility.Visible;
+		FinalAnswersEmpty.Visibility = Visibility.Visible;
+		FinalAnswersScroll.Visibility = Visibility.Collapsed;
+
+		if (_finalEndButton != null)
+			_finalEndButton.Visibility = Visibility.Visible;
 	}
 
 	private Border BuildFinalThemeCard(FinalTheme theme)
@@ -426,12 +491,17 @@ public partial class MainWindow : Window
 			return;
 		_usedCells.Add(key);
 
+		// Переводим игроков на фазу ответов
+		if (!string.IsNullOrEmpty(_currentRoom) && _client.Connected)
+		{
+			_ = _client.EmitAsync("openFinalAnswers", new object[]
+			{
+			new { roomNumber = _currentRoom }
+			});
+		}
+
 		ShowBoardWindow();
-
-		// Если табло ещё не в режиме финала — переведём его туда (без затемнения: MarkFinalThemePlayed всё сделает)
 		_boardWindow!.ShowFinal(roundIndex, _activeFinalThemes, _usedCells);
-
-		// Показываем вопрос
 		_boardWindow!.ShowQuestion(
 			theme.Name,
 			0,
@@ -439,7 +509,6 @@ public partial class MainWindow : Window
 			theme.Answer ?? new ContentBlock(),
 			isFinal: true);
 
-		// Панель ответа админа
 		ShowAdminCard(theme.Name, 0, theme.Question, theme.Answer, isFinal: true);
 
 		BtnShowAnswer.IsEnabled = true;
@@ -838,6 +907,12 @@ public partial class MainWindow : Window
 
 		// Сбрасываем состояние поля
 		_usedCells.Clear();
+		_finalActive = false;
+		_finalBetsApplied.Clear();
+		_finalAnswers.Clear();
+		FinalAnswersPanel.Visibility = Visibility.Collapsed;
+		_finalEndButton = null;
+
 		BuildRoundsUi();
 
 		if (_boardWindow != null && _boardWindow.IsLoaded)
@@ -906,22 +981,84 @@ public partial class MainWindow : Window
 		if (!ReferenceEquals(e.OriginalSource, RoundsTabControl))
 			return;
 
-		// Если на табло открыт вопрос — не трогаем ни панель ответа, ни кнопки.
-		// Админ должен иметь возможность дочитать ответ и свернуть вопрос.
+		// Если на табло открыт вопрос — не трогаем ни панель ответа, ни кнопки
 		if (_boardWindow is { IsLoaded: true } && _boardWindow.IsQuestionVisible)
 			return;
 
-		// Иначе — сброс UI и синхронизация табло с новой вкладкой
 		AdminAnswerPanel.Visibility = Visibility.Collapsed;
-		_adminAnswerMedia.Stop();
-		_adminQuestionMedia.Stop();
 		BtnShowAnswer.IsEnabled = false;
 		BtnHideQuestion.IsEnabled = false;
+
+		_adminAnswerMedia.Stop();
+		_adminQuestionMedia.Stop();
 
 		if (_boardWindow is { IsLoaded: true })
 		{
 			SyncBoardToCurrentTab();
 		}
+	}
+
+	private void UpdateFinalAnswers(List<System.Text.Json.JsonElement> list)
+	{
+		_finalAnswers.Clear();
+
+		foreach (var el in list)
+		{
+			if (el.ValueKind != System.Text.Json.JsonValueKind.Object)
+				continue;
+
+			string name = el.TryGetProperty("name", out var n) ? (n.GetString() ?? "") : "";
+			if (string.IsNullOrEmpty(name))
+				continue;
+
+			int bet = el.TryGetProperty("bet", out var b) && b.TryGetInt32(out var bi) ? bi : 0;
+			string answer = el.TryGetProperty("answer", out var a) ? (a.GetString() ?? "") : "";
+			bool betSubmitted = el.TryGetProperty("betSubmitted", out var bs)
+								&& bs.ValueKind == System.Text.Json.JsonValueKind.True;
+			bool answerSubmitted = el.TryGetProperty("answerSubmitted", out var asb)
+								   && asb.ValueKind == System.Text.Json.JsonValueKind.True;
+
+			_finalAnswers.Add(new FinalAnswerView
+			{
+				Name = name,
+				Bet = bet,
+				Answer = answer,
+				BetSubmitted = betSubmitted,
+				AnswerSubmitted = answerSubmitted
+			});
+
+			// Автоподстановка ставки в BetInput — один раз
+			if (betSubmitted && _finalBetsApplied.Add(name))
+			{
+				var row = _players.FirstOrDefault(p => p.Name == name);
+				if (row != null && bet > 0)
+					row.BetInput = bet.ToString();
+			}
+		}
+
+		bool any = _finalAnswers.Count > 0;
+		FinalAnswersScroll.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
+		FinalAnswersEmpty.Visibility = any ? Visibility.Collapsed : Visibility.Visible;
+	}
+
+	private async void BtnEndFinal_Click(object sender, RoutedEventArgs e)
+	{
+		if (string.IsNullOrEmpty(_currentRoom) || !_client.Connected)
+			return;
+
+		await _client.EmitAsync("endFinal", new object[]
+		{
+		new { roomNumber = _currentRoom }
+		});
+
+		_finalActive = false;
+		_finalBetsApplied.Clear();
+		_finalAnswers.Clear();
+
+		FinalAnswersPanel.Visibility = Visibility.Collapsed;
+
+		if (_finalEndButton != null)
+			_finalEndButton.Visibility = Visibility.Collapsed;
 	}
 }
 
@@ -944,4 +1081,16 @@ internal class CellTag
 	public int RoundIndex;
 	public Theme? Theme;
 	public int Price;
+}
+
+public class FinalAnswerView
+{
+	public string Name { get; set; } = "";
+	public int Bet { get; set; }
+	public string Answer { get; set; } = "";
+	public bool BetSubmitted { get; set; }
+	public bool AnswerSubmitted { get; set; }
+
+	public string BetLabel => BetSubmitted ? (Bet > 0 ? $"+{Bet}" : "1") : "—";
+	public string AnswerLabel => AnswerSubmitted ? Answer : "(ожидается ответ)";
 }

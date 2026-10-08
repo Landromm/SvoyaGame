@@ -100,6 +100,21 @@ function broadcastPlayersList(roomNumber, room) {
     io.to(roomNumber).emit("onPlayersListUpdated", Array.from(room.players.keys()));
 }
 
+function broadcastFinalAnswers(roomNumber, room) {
+    const list = [];
+    for (const [name] of room.players.entries()) {
+        const fa = room.finalAnswers.get(name);
+        list.push({
+            name,
+            bet: fa ? fa.bet : 0,
+            answer: fa ? fa.answer : "",
+            betSubmitted: fa ? !!fa.betSubmitted : false,
+            answerSubmitted: fa ? !!fa.answerSubmitted : false
+        });
+    }
+    io.to(roomNumber).emit("onFinalAnswersUpdated", list);
+}
+
 // ============================================================
 // ПОДКЛЮЧЕНИЕ
 // ============================================================
@@ -117,7 +132,10 @@ io.on("connection", (socket) => {
             activeRooms.set(roomNumber, {
                 winner: null,
                 topClicks: [],
-                players: new Map()
+                players: new Map(),
+                finalActive: false,
+                finalPhase: null,           // "bets" | "answers"
+                finalAnswers: new Map()     // playerName -> { bet, answer, betSubmitted, answerSubmitted }
             });
             console.log(`Администратор создал комнату: ${roomNumber}`);
         } else {
@@ -173,7 +191,13 @@ io.on("connection", (socket) => {
         if (room.topClicks.length > 0) {
             socket.emit("onTopClicksUpdated", room.topClicks);
         }
-
+        if (room.finalActive) {
+            socket.emit("onFinalStarted");
+            if (room.finalPhase === "answers") {
+                socket.emit("onFinalAnswerPhase");
+            }
+        }
+        broadcastFinalAnswers(roomNumber, room);
         // Отправляем текущий счёт лично игроку, чтобы он видел свои очки
         const myInfo = room.players.get(playerName);
         socket.emit("onMyScore", { name: playerName, score: myInfo.score });
@@ -252,6 +276,130 @@ io.on("connection", (socket) => {
     // --------------------------------------------------------
     // Отключение
     // --------------------------------------------------------
+    // --------------------------------------------------------
+    // [АДМИН] Начать финал — фаза ставок
+    // --------------------------------------------------------
+    socket.on("startFinal", (data) => {
+        const { roomNumber } = data || {};
+        const room = activeRooms.get(roomNumber);
+        if (!room) return;
+
+        room.finalActive = true;
+        room.finalPhase = "bets";
+        room.finalAnswers.clear();
+        console.log(`Финал начат (фаза ставок) в комнате ${roomNumber}`);
+
+        io.to(roomNumber).emit("onFinalStarted");
+        broadcastFinalAnswers(roomNumber, room);
+    });
+
+    // --------------------------------------------------------
+    // [ИГРОК] Отправить ставку
+    // --------------------------------------------------------
+    socket.on("submitFinalBet", (data) => {
+        const { roomNumber, playerName, bet } = data || {};
+        const room = activeRooms.get(roomNumber);
+        if (!room || !room.finalActive || room.finalPhase !== "bets") return;
+
+        const player = room.players.get(playerName);
+        if (!player) return;
+
+        const score = player.score || 0;
+        if (score < 1) return;
+
+        // Одна ставка на игрока
+        const existing = room.finalAnswers.get(playerName);
+        if (existing && existing.betSubmitted) return;
+
+        let betNum = parseInt(bet, 10);
+        if (!Number.isFinite(betNum)) return;
+        if (betNum < 1) betNum = 1;
+        if (betNum > score) betNum = score;
+
+        room.finalAnswers.set(playerName, {
+            bet: betNum,
+            answer: existing ? existing.answer : "",
+            betSubmitted: true,
+            answerSubmitted: existing ? !!existing.answerSubmitted : false
+        });
+
+        console.log(`Финал [${roomNumber}] ${playerName}: ставка ${betNum}`);
+        broadcastFinalAnswers(roomNumber, room);
+    });
+
+    // --------------------------------------------------------
+    // [АДМИН] Открыть фазу ответов
+    // --------------------------------------------------------
+    socket.on("openFinalAnswers", (data) => {
+        const { roomNumber } = data || {};
+        const room = activeRooms.get(roomNumber);
+        if (!room || !room.finalActive) return;
+
+        room.finalPhase = "answers";
+
+        // Всем, кто не сделал ставку — по умолчанию 1.
+        // При этом betSubmitted = true, чтобы игрок мог отправить ответ.
+        for (const [name] of room.players.entries()) {
+            const existing = room.finalAnswers.get(name);
+            if (!existing || !existing.betSubmitted) {
+                room.finalAnswers.set(name, {
+                    bet: 1,
+                    answer: existing ? existing.answer : "",
+                    betSubmitted: true,
+                    answerSubmitted: false
+                });
+                console.log(`Финал [${roomNumber}] ${name}: ставка по умолчанию 0`);
+            }
+        }
+
+        console.log(`Финал: фаза ответов в комнате ${roomNumber}`);
+
+        io.to(roomNumber).emit("onFinalAnswerPhase");
+        broadcastFinalAnswers(roomNumber, room);
+    });
+
+    // --------------------------------------------------------
+    // [ИГРОК] Отправить ответ
+    // --------------------------------------------------------
+    socket.on("submitFinalAnswer", (data) => {
+        const { roomNumber, playerName, answer } = data || {};
+        const room = activeRooms.get(roomNumber);
+        if (!room || !room.finalActive || room.finalPhase !== "answers") return;
+
+        const player = room.players.get(playerName);
+        if (!player) return;
+
+        const entry = room.finalAnswers.get(playerName);
+        if (!entry || !entry.betSubmitted) return;      // ставка не сделана
+        if (entry.answerSubmitted) return;               // уже отправлено
+
+        const answerStr = String(answer || "").trim();
+        if (!answerStr) return;
+
+        entry.answer = answerStr;
+        entry.answerSubmitted = true;
+
+        console.log(`Финал [${roomNumber}] ${playerName}: ответ "${answerStr}"`);
+        broadcastFinalAnswers(roomNumber, room);
+    });
+
+    // --------------------------------------------------------
+    // [АДМИН] Завершить финал
+    // --------------------------------------------------------
+    socket.on("endFinal", (data) => {
+        const { roomNumber } = data || {};
+        const room = activeRooms.get(roomNumber);
+        if (!room) return;
+
+        room.finalActive = false;
+        room.finalPhase = null;
+        room.finalAnswers.clear();
+        console.log(`Финал завершён в комнате ${roomNumber}`);
+
+        io.to(roomNumber).emit("onFinalEnded");
+        broadcastFinalAnswers(roomNumber, room);
+    });
+
     socket.on("disconnect", () => {
         console.log(`Клиент отключился: ${socket.id}`);
 

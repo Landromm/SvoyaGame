@@ -436,6 +436,8 @@
 				<RowDefinition Height="Auto"/>
 				<!-- панель ответа для админа -->
 				<RowDefinition Height="Auto"/>
+				<!-- ответы финала -->
+				<RowDefinition Height="Auto"/>
 				<!-- кнопка "Открыть табло" -->
 				<RowDefinition Height="Auto"/>
 				<!-- Редактор вопросов -->
@@ -584,9 +586,88 @@
 				</StackPanel>
 			</Border>
 
+			<!-- Ответы финала -->
+			<Border x:Name="FinalAnswersPanel"
+        Grid.Row="2"
+        Background="#0F2544"
+        BorderBrush="{StaticResource AccentGreen}"
+        BorderThickness="2"
+        CornerRadius="10"
+        Padding="14"
+        Margin="0,12,0,0"
+        MaxHeight="280"
+        Visibility="Collapsed">
+				<Grid>
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+					</Grid.RowDefinitions>
+
+					<TextBlock Grid.Row="0"
+                   Text="📩 СТАВКИ И ОТВЕТЫ"
+                   Foreground="{StaticResource AccentGreen}"
+                   FontSize="14"
+                   FontWeight="Bold"
+                   HorizontalAlignment="Center"
+                   Margin="0,0,0,8"/>
+
+					<TextBlock x:Name="FinalAnswersEmpty"
+                   Grid.Row="1"
+                   Text="Ожидание ставок и ответов игроков..."
+                   Foreground="#9FB3C8"
+                   FontSize="13"
+                   FontStyle="Italic"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   TextWrapping="Wrap"/>
+
+					<ScrollViewer Grid.Row="1"
+                      x:Name="FinalAnswersScroll"
+                      VerticalScrollBarVisibility="Auto"
+                      Visibility="Collapsed">
+						<ItemsControl x:Name="FinalAnswersList">
+							<ItemsControl.ItemTemplate>
+								<DataTemplate>
+									<Border Background="#0B1E3A"
+                                CornerRadius="6"
+                                Padding="10,6"
+                                Margin="0,3">
+										<Grid>
+											<Grid.ColumnDefinitions>
+												<ColumnDefinition Width="*"/>
+												<ColumnDefinition Width="Auto"/>
+											</Grid.ColumnDefinitions>
+
+											<StackPanel Grid.Column="0">
+												<TextBlock Text="{Binding Name}"
+                                               Foreground="{StaticResource AccentGold}"
+                                               FontWeight="Bold"
+                                               FontSize="14"/>
+												<TextBlock Text="{Binding AnswerLabel}"
+                                               Foreground="{StaticResource TextMain}"
+                                               FontSize="13"
+                                               TextWrapping="Wrap"
+                                               Margin="0,3,0,0"/>
+											</StackPanel>
+
+											<TextBlock Grid.Column="1"
+                                           Text="{Binding BetLabel}"
+                                           Foreground="{StaticResource AccentGreen}"
+                                           FontSize="20"
+                                           FontWeight="Bold"
+                                           VerticalAlignment="Center"
+                                           Margin="8,0,0,0"/>
+										</Grid>
+									</Border>
+								</DataTemplate>
+							</ItemsControl.ItemTemplate>
+						</ItemsControl>
+					</ScrollViewer>
+				</Grid>
+			</Border>
 			<!-- Кнопка "Открыть табло" -->
 			<Button x:Name="BtnOpenBoard"
-                Grid.Row="2"
+                Grid.Row="3"
                 Style="{StaticResource BlueButton}"
                 Content="▶ ОТКРЫТЬ ТАБЛО ДЛЯ ЗАЛА"
                 Click="BtnOpenBoard_Click"
@@ -595,7 +676,7 @@
                 FontSize="14"/>
 
 			<Button x:Name="BtnEditThemes"
-                Grid.Row="3"
+                Grid.Row="4"
                 Style="{StaticResource GoldButton}"
                 Content="✎ РЕДАКТОР ВОПРОСОВ"
                 Click="BtnEditThemes_Click"

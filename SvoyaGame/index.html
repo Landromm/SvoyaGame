@@ -242,19 +242,48 @@
         </div>
 
 		<!-- ============== Игровая зона ============== -->
-		<div id="gameArea">
-			<h2 id="playerNameHeader">—</h2>
-			<div class="room-badge">Комната <b id="roomTitle">—</b></div>
+        <div id="gameArea">
+            <h2 id="playerNameHeader">—</h2>
+            <div class="room-badge">Комната <b id="roomTitle">—</b></div>
 
-			<div class="score-card">
-				<span class="label">Ваш счёт</span>
-				<span class="value" id="myScore">0</span>
-			</div>
+            <div class="score-card">
+                <span class="label">Ваш счёт</span>
+                <span class="value" id="myScore">0</span>
+            </div>
 
-			<button id="buzzer">ЖМИ!</button>
+            <button id="buzzer">ЖМИ!</button>
 
-			<div id="status">Ожидание начала...</div>
-		</div>
+            <!-- Финальный режим: две фазы -->
+            <div id="finalBlock" style="display:none;">
+                <h3 style="color: var(--gold); margin: 0 0 16px;">⭐ ФИНАЛ</h3>
+
+                <!-- Фаза 1: ставка -->
+                <div id="betPhase" style="display:none;">
+                    <div class="form-group">
+                        <label style="display:block; color: var(--text-muted); font-size: 13px; margin-bottom: 6px;">
+                            Ваша ставка (1 – <span id="maxBet">0</span>)
+                        </label>
+                        <input type="number" id="betInput" min="1" step="1" inputmode="numeric" placeholder="Ставка">
+                    </div>
+                    <button id="submitBetBtn" disabled class="btn-connect">📨 Отправить ставку</button>
+                    <div id="betStatus" style="margin-top: 12px; color: var(--text-muted); font-size: 14px;"></div>
+                </div>
+
+                <!-- Фаза 2: ответ -->
+                <div id="answerPhase" style="display:none;">
+                    <div class="form-group">
+                        <label style="display:block; color: var(--text-muted); font-size: 13px; margin-bottom: 6px;">
+                            Ваш ответ
+                        </label>
+                        <input type="text" id="answerInput" maxlength="200" placeholder="Ответ на вопрос">
+                    </div>
+                    <button id="submitAnswerBtn" disabled class="btn-connect">📨 Отправить ответ</button>
+                    <div id="answerStatus" style="margin-top: 12px; color: var(--text-muted); font-size: 14px;"></div>
+                </div>
+            </div>
+
+            <div id="status">Ожидание начала...</div>
+        </div>
 
     </div>
 
@@ -262,6 +291,7 @@
         let socket;
         let roomNumber;
         let playerName;
+		let currentScore = 0;
 		
 		// ---- Звук ----
 const buzzSound = document.getElementById('buzzSound');
@@ -341,6 +371,103 @@ function unlockAudio() {
                 status.innerText = "Кнопка активна! Приготовьтесь...";
                 status.className = "";
             });
+
+			// --------------------------------------------------------
+			// Финал: фаза ставок
+			// --------------------------------------------------------
+			socket.on("onFinalStarted", () => {
+				document.getElementById('buzzer').style.display = 'none';
+				document.getElementById('finalBlock').style.display = 'block';
+				document.getElementById('betPhase').style.display = 'block';
+				document.getElementById('answerPhase').style.display = 'none';
+
+				const betInput = document.getElementById('betInput');
+				const submitBtn = document.getElementById('submitBetBtn');
+				const statusEl = document.getElementById('betStatus');
+
+				if (currentScore < 1) {
+					betInput.disabled = true;
+					submitBtn.disabled = true;
+					statusEl.textContent = "У вас 0 очков — ставка невозможна.";
+					statusEl.style.color = "var(--red)";
+					return;
+				}
+
+				betInput.disabled = false;
+				betInput.value = '';
+				betInput.max = currentScore;
+				document.getElementById('maxBet').textContent = currentScore;
+
+				submitBtn.disabled = true;
+				statusEl.textContent = '';
+				statusEl.style.color = '';
+				validateBetForm();
+			});
+
+			// --------------------------------------------------------
+			// Финал: фаза ответов
+			// --------------------------------------------------------
+			socket.on("onFinalAnswerPhase", () => {
+				document.getElementById('betPhase').style.display = 'none';
+				document.getElementById('answerPhase').style.display = 'block';
+
+				const answerInput = document.getElementById('answerInput');
+				const submitBtn = document.getElementById('submitAnswerBtn');
+				const statusEl = document.getElementById('answerStatus');
+
+				answerInput.value = '';
+				answerInput.disabled = false;
+				submitBtn.disabled = true;
+				statusEl.textContent = '';
+				statusEl.style.color = '';
+				validateAnswerForm();
+			});
+
+			// --------------------------------------------------------
+			// Финал: обновление ставок/ответов (в т.ч. для себя)
+			// --------------------------------------------------------
+			socket.on("onFinalAnswersUpdated", (list) => {
+				if (!Array.isArray(list)) return;
+				const me = list.find(p => p.name === playerName);
+				if (!me) return;
+
+				// Ставка отправлена — блокируем фазу ставки
+				if (me.betSubmitted) {
+					const betInput = document.getElementById('betInput');
+					const submitBtn = document.getElementById('submitBetBtn');
+					const statusEl = document.getElementById('betStatus');
+					betInput.value = me.bet;
+					betInput.disabled = true;
+					submitBtn.disabled = true;
+					statusEl.textContent = "✓ Ставка отправлена";
+					statusEl.style.color = "var(--green)";
+				}
+
+				// Ответ отправлен — блокируем фазу ответа
+				if (me.answerSubmitted) {
+					const answerInput = document.getElementById('answerInput');
+					const submitBtn = document.getElementById('submitAnswerBtn');
+					const statusEl = document.getElementById('answerStatus');
+					answerInput.value = me.answer;
+					answerInput.disabled = true;
+					submitBtn.disabled = true;
+					statusEl.textContent = "✓ Ответ отправлен. Ждите решения админа.";
+					statusEl.style.color = "var(--green)";
+				}
+			});
+
+			// --------------------------------------------------------
+			// Финал завершён
+			// --------------------------------------------------------
+			socket.on("onFinalEnded", () => {
+				document.getElementById('finalBlock').style.display = 'none';
+				document.getElementById('betPhase').style.display = 'none';
+				document.getElementById('answerPhase').style.display = 'none';
+				document.getElementById('buzzer').style.display = 'block';
+				document.getElementById('buzzer').disabled = false;
+			});
+
+
 
 			socket.on("onTopClicksUpdated", (top) => {
 				if (!Array.isArray(top)) return;
@@ -442,6 +569,8 @@ function unlockAudio() {
                 document.getElementById('gameArea').style.display = 'none';
                 alert("Соединение с сервером разорвано.");
             });
+
+			
         }
 
         // ============================================================
@@ -452,7 +581,7 @@ function unlockAudio() {
         function updateMyScore(newScore) {
             const el = document.getElementById('myScore');
             const value = Number(newScore) || 0;
-
+			currentScore = value;
             el.innerText = value;
 
             if (value > prevScore) {
@@ -469,21 +598,83 @@ function unlockAudio() {
             prevScore = value;
         }
 
+		function validateBetForm() {
+			const betInput = document.getElementById('betInput');
+			const submitBtn = document.getElementById('submitBetBtn');
+			const bet = parseInt(betInput.value, 10);
+			const valid = Number.isFinite(bet) && bet >= 1 && bet <= currentScore;
+			submitBtn.disabled = !valid;
+		}
+
+		function validateAnswerForm() {
+			const answerInput = document.getElementById('answerInput');
+			const submitBtn = document.getElementById('submitAnswerBtn');
+			const ans = answerInput.value.trim();
+			submitBtn.disabled = ans.length === 0;
+		}
+
         // ============================================================
         // КЛИК ПО КНОПКЕ
         // ============================================================
-document.getElementById('buzzer').addEventListener('click', () => {
-    if (!socket || !socket.connected) return;
+        document.getElementById('buzzer').addEventListener('click', () => {
+            if (!socket || !socket.connected) return;
 
-    // 1) СНАЧАЛА на сервер — тайминг регистрации не меняется
-    socket.emit("playerClick", {
-        roomNumber: roomNumber,
-        playerName: playerName
-    });
+            // 1) СНАЧАЛА на сервер — тайминг регистрации не меняется
+            socket.emit("playerClick", {
+                roomNumber: roomNumber,
+                playerName: playerName
+            });
 
-    // 2) ПОТОМ локально играем звук — не блокирует emit
-    playBuzz();
-});
+            // 2) ПОТОМ локально играем звук — не блокирует emit
+            playBuzz();
+        });
+
+		document.getElementById('betInput').addEventListener('input', validateBetForm);
+		document.getElementById('answerInput').addEventListener('input', validateAnswerForm);
+
+		document.getElementById('submitBetBtn').addEventListener('click', () => {
+			if (!socket || !socket.connected) return;
+
+			const betInput = document.getElementById('betInput');
+			const submitBtn = document.getElementById('submitBetBtn');
+			const statusEl = document.getElementById('betStatus');
+
+			const bet = parseInt(betInput.value, 10);
+			if (!Number.isFinite(bet) || bet < 1 || bet > currentScore) return;
+
+			socket.emit("submitFinalBet", {
+				roomNumber: roomNumber,
+				playerName: playerName,
+				bet: bet
+			});
+
+			betInput.disabled = true;
+			submitBtn.disabled = true;
+			statusEl.textContent = "✓ Ставка отправлена";
+			statusEl.style.color = "var(--green)";
+		});
+
+		document.getElementById('submitAnswerBtn').addEventListener('click', () => {
+			if (!socket || !socket.connected) return;
+
+			const answerInput = document.getElementById('answerInput');
+			const submitBtn = document.getElementById('submitAnswerBtn');
+			const statusEl = document.getElementById('answerStatus');
+
+			const ans = answerInput.value.trim();
+			if (!ans) return;
+
+			socket.emit("submitFinalAnswer", {
+				roomNumber: roomNumber,
+				playerName: playerName,
+				answer: ans
+			});
+
+			answerInput.disabled = true;
+			submitBtn.disabled = true;
+			statusEl.textContent = "✓ Ответ отправлен. Ждите решения админа.";
+			statusEl.style.color = "var(--green)";
+		});
 
         // ============================================================
         // СНЕЖИНКИ (чисто декоративно)
