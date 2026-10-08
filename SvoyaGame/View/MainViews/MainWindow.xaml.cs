@@ -33,6 +33,7 @@ public partial class MainWindow : Window
 	private Round? _finalRound;
 	private readonly HashSet<string> _usedCells = new(); // "Тема|Цена"
 	private readonly MediaPlayer _adminAnswerMedia = new();
+	private readonly MediaPlayer _adminQuestionMedia = new();
 	private string? _currentRoom;
     private GameBoardWindow? _boardWindow;
 
@@ -439,7 +440,7 @@ public partial class MainWindow : Window
 			isFinal: true);
 
 		// Панель ответа админа
-		ShowAdminAnswer(theme.Name, 0, theme.Answer);
+		ShowAdminCard(theme.Name, 0, theme.Question, theme.Answer, isFinal: true);
 
 		BtnShowAnswer.IsEnabled = true;
 		BtnHideQuestion.IsEnabled = true;
@@ -482,7 +483,7 @@ public partial class MainWindow : Window
 			p.BetInput = price.ToString();
 
 		// Панель ответа админа
-		ShowAdminAnswer(theme.Name, price, q.Answer);
+		ShowAdminCard(theme.Name, price, q.Question, q.Answer);
 
 		BtnShowAnswer.IsEnabled = true;
 		BtnHideQuestion.IsEnabled = true;
@@ -692,6 +693,7 @@ public partial class MainWindow : Window
 
 		AdminAnswerPanel.Visibility = Visibility.Collapsed;
 		_adminAnswerMedia.Stop();
+		_adminQuestionMedia.Stop();
 
 		// Синхронизируем табло с текущей активной вкладкой админа —
 		// за время показа вопроса админ мог переключить раунд.
@@ -701,26 +703,35 @@ public partial class MainWindow : Window
 		}
 	}
 
-	private void ShowAdminAnswer(string themeName, int price, ContentBlock? answer)
+	// =====================================================================
+	// КАРТОЧКА ВОПРОСА ДЛЯ АДМИНА
+	// =====================================================================
+	private void ShowAdminCard(string themeName, int price, ContentBlock? question, ContentBlock? answer, bool isFinal = false)
 	{
-		AdminQuestionMeta.Text = $"{themeName} • {price}";
+		AdminQuestionMeta.Text = isFinal
+			? $"ФИНАЛ — {themeName}"
+			: $"{themeName} • {price}";
 
-		// Текст
-		if (answer?.HasText == true)
-		{
-			AdminAnswerText.Text = answer.Text!;
-			AdminAnswerText.Visibility = Visibility.Visible;
-		}
-		else
-		{
-			AdminAnswerText.Text = "";
-			AdminAnswerText.Visibility = Visibility.Collapsed;
-		}
+		FillAdminBlock(AdminQuestionImage, AdminQuestionText,
+					   AdminQuestionAudioBtn, _adminQuestionMedia, question);
 
-		// Картинка
-		if (answer?.HasImage == true)
+		FillAdminBlock(AdminAnswerImage, AdminAnswerText,
+					   AdminAnswerAudioBtn, _adminAnswerMedia, answer);
+
+		AdminAnswerPanel.Visibility = Visibility.Visible;
+	}
+
+	private void FillAdminBlock(
+		System.Windows.Controls.Image imgCtrl,
+		System.Windows.Controls.TextBlock txtCtrl,
+		System.Windows.Controls.Button audioBtn,
+		MediaPlayer media,
+		ContentBlock? block)
+	{
+		// --- Картинка ---
+		if (block?.HasImage == true)
 		{
-			var path = Services.QuestionsLoader.ResolveMediaPath(answer.Image);
+			var path = QuestionsLoader.ResolveMediaPath(block.Image);
 			if (path != null && File.Exists(path))
 			{
 				try
@@ -730,57 +741,58 @@ public partial class MainWindow : Window
 					bmp.CacheOption = BitmapCacheOption.OnLoad;
 					bmp.UriSource = new Uri(path, UriKind.Absolute);
 					bmp.EndInit();
-					AdminAnswerImage.Source = bmp;
-					AdminAnswerImage.Visibility = Visibility.Visible;
+					imgCtrl.Source = bmp;
+					imgCtrl.Visibility = Visibility.Visible;
 				}
 				catch
 				{
-					AdminAnswerImage.Source = null;
-					AdminAnswerImage.Visibility = Visibility.Collapsed;
+					imgCtrl.Source = null;
+					imgCtrl.Visibility = Visibility.Collapsed;
 				}
 			}
 			else
 			{
-				AdminAnswerImage.Source = null;
-				AdminAnswerImage.Visibility = Visibility.Collapsed;
+				imgCtrl.Source = null;
+				imgCtrl.Visibility = Visibility.Collapsed;
 			}
 		}
 		else
 		{
-			AdminAnswerImage.Source = null;
-			AdminAnswerImage.Visibility = Visibility.Collapsed;
+			imgCtrl.Source = null;
+			imgCtrl.Visibility = Visibility.Collapsed;
+		}
+
+		// --- Текст ---
+		if (block?.HasText == true)
+		{
+			txtCtrl.Text = block.Text!;
+			txtCtrl.Visibility = Visibility.Visible;
+		}
+		else
+		{
+			txtCtrl.Text = "";
+			txtCtrl.Visibility = Visibility.Collapsed;
 		}
 
 		// --- Звук ---
-		_adminAnswerMedia.Stop();
-		_adminAnswerMedia.Close();
+		media.Stop();
+		media.Close();
 
-		if (answer?.HasAudio == true)
+		if (block?.HasAudio == true)
 		{
-			var audioPath = Services.QuestionsLoader.ResolveMediaPath(answer.Audio);
+			var audioPath = QuestionsLoader.ResolveMediaPath(block.Audio);
 			if (audioPath != null && File.Exists(audioPath))
 			{
 				try
 				{
-					_adminAnswerMedia.Open(new Uri(audioPath, UriKind.Absolute));
-					AdminAnswerAudioBtn.Visibility = Visibility.Visible;
+					media.Open(new Uri(audioPath, UriKind.Absolute));
+					audioBtn.Visibility = Visibility.Visible;
+					return;
 				}
-				catch
-				{
-					AdminAnswerAudioBtn.Visibility = Visibility.Collapsed;
-				}
-			}
-			else
-			{
-				AdminAnswerAudioBtn.Visibility = Visibility.Collapsed;
+				catch { /* ignore */ }
 			}
 		}
-		else
-		{
-			AdminAnswerAudioBtn.Visibility = Visibility.Collapsed;
-		}
-
-		AdminAnswerPanel.Visibility = Visibility.Visible;
+		audioBtn.Visibility = Visibility.Collapsed;
 	}
 
 	private void AdminAnswerAudio_Click(object sender, RoutedEventArgs e)
@@ -790,6 +802,15 @@ public partial class MainWindow : Window
 		_adminAnswerMedia.Position = TimeSpan.Zero;
 		_adminAnswerMedia.Play();
 	}
+
+	private void AdminQuestionAudio_Click(object sender, RoutedEventArgs e)
+	{
+		if (_adminQuestionMedia.Source is null)
+			return;
+		_adminQuestionMedia.Position = TimeSpan.Zero;
+		_adminQuestionMedia.Play();
+	}
+
 	private void BtnEditThemes_Click(object sender, RoutedEventArgs e)
 	{
 		var confirm = MessageBox.Show(
@@ -876,6 +897,7 @@ public partial class MainWindow : Window
 	protected override void OnClosed(EventArgs e)
 	{
 		_adminAnswerMedia.Close();
+		_adminQuestionMedia.Close();
 		base.OnClosed(e);
 	}
 
@@ -891,6 +913,8 @@ public partial class MainWindow : Window
 
 		// Иначе — сброс UI и синхронизация табло с новой вкладкой
 		AdminAnswerPanel.Visibility = Visibility.Collapsed;
+		_adminAnswerMedia.Stop();
+		_adminQuestionMedia.Stop();
 		BtnShowAnswer.IsEnabled = false;
 		BtnHideQuestion.IsEnabled = false;
 
