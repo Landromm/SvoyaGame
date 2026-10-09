@@ -639,44 +639,51 @@
                       x:Name="FinalAnswersScroll"
                       VerticalScrollBarVisibility="Auto"
                       Visibility="Collapsed">
-						<ItemsControl x:Name="FinalAnswersList">
-							<ItemsControl.ItemTemplate>
-								<DataTemplate>
-									<Border Background="#0B1E3A"
-                                CornerRadius="6"
-                                Padding="10,6"
-                                Margin="0,3">
-										<Grid>
-											<Grid.ColumnDefinitions>
-												<ColumnDefinition Width="*"/>
-												<ColumnDefinition Width="Auto"/>
-											</Grid.ColumnDefinitions>
+                        <ItemsControl x:Name="FinalAnswersList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#0B1E3A"
+                                        CornerRadius="6"
+                                        Padding="10,6"
+                                        Margin="0,3">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="1*"/>
+                                                <ColumnDefinition Width="2*"/>
+                                                <ColumnDefinition Width="Auto" MinWidth="70"/>
+                                            </Grid.ColumnDefinitions>
 
-											<StackPanel Grid.Column="0">
-												<TextBlock Text="{Binding Name}"
+                                            <TextBlock Grid.Column="0"
+                                               Text="{Binding Name}"
                                                Foreground="{StaticResource AccentGold}"
                                                FontWeight="Bold"
-                                               FontSize="14"/>
-												<TextBlock Text="{Binding AnswerLabel}"
-                                               Foreground="{StaticResource TextMain}"
-                                               FontSize="13"
-                                               TextWrapping="Wrap"
-                                               Margin="0,3,0,0"/>
-											</StackPanel>
+                                               FontSize="16"
+                                               TextTrimming="CharacterEllipsis"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,8,0"/>
 
-											<TextBlock Grid.Column="1"
-                                           Text="{Binding BetLabel}"
-                                           Foreground="{StaticResource AccentGreen}"
-                                           FontSize="20"
-                                           FontWeight="Bold"
-                                           VerticalAlignment="Center"
-                                           Margin="8,0,0,0"/>
-										</Grid>
-									</Border>
-								</DataTemplate>
-							</ItemsControl.ItemTemplate>
-						</ItemsControl>
-					</ScrollViewer>
+                                            <TextBlock Grid.Column="1"
+                                               Text="{Binding AnswerLabel}"
+                                               Foreground="{StaticResource TextMain}"
+                                               FontSize="24"
+                                               FontWeight="Bold"
+                                               TextWrapping="Wrap"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,8,0"/>
+
+                                            <TextBlock Grid.Column="2"
+                                               Text="{Binding BetLabel}"
+                                               Foreground="{StaticResource AccentGreen}"
+                                               FontSize="18"
+                                               FontWeight="Bold"
+                                               HorizontalAlignment="Right"
+                                               VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
 				</Grid>
 			</Border>
 			<!-- Кнопка "Открыть табло" -->

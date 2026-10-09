@@ -666,25 +666,35 @@ public partial class MainWindow : Window
 	// =====================================================================
 	private void CellButton_Click(object sender, RoutedEventArgs e)
 	{
-		if (sender is not Button btn)
-			return;
-		if (btn.Tag is not CellTag tag)
-			return;
-		if (tag.Theme is null)
-			return;
+        if (sender is not Button btn) return;
+        if (btn.Tag is not CellTag tag) return;
+        if (tag.Theme is null) return;
 
-		var theme = tag.Theme;
-		int price = tag.Price;
-		var q = theme.GetQuestion(price);
-		if (q is null)
-			return;
+        var theme = tag.Theme;
+        int price = tag.Price;
+        var q = theme.GetQuestion(price);
+        if (q is null) return;
 
-		string usedKey = $"{tag.RoundIndex}|{theme.Name}|{price}";
-		_usedCells.Add(usedKey);
-		btn.IsEnabled = false;
+        // АВТОСБРОС: если админ забыл сбросить раунд перед новым вопросом,
+        // отправляем resetGame автоматически.
+        if (!string.IsNullOrEmpty(_currentRoom) && _client.Connected)
+        {
+            _ = _client.EmitAsync("resetGame", new object[] { _currentRoom });
 
-		// ---- КОТ В МЕШКЕ ----
-		if (_catInBagCells.Contains(usedKey))
+            // Локально снимаем подсветку лидера и ТОП-3 сразу,
+            // не дожидаясь ответа сервера.
+            _currentLeader = null;
+            UpdateTop3(new List<string>());
+            BtnReset.IsEnabled = false;
+            _boardWindow?.HighlightFirst(null);
+        }
+
+        string usedKey = $"{tag.RoundIndex}|{theme.Name}|{price}";
+        _usedCells.Add(usedKey);
+        btn.IsEnabled = false;
+
+        // ---- КОТ В МЕШКЕ ----
+        if (_catInBagCells.Contains(usedKey))
 		{
 			_catInBagPending = new CatInBagPending
 			{
@@ -1472,7 +1482,7 @@ public partial class MainWindow : Window
 	/// </summary>
 	private void GenerateCatInBag()
 	{
-		const int catsPerRound = 3;
+		const int catsPerRound = 2;
 
 		_catInBagCells.Clear();
 		var rnd = new Random();
