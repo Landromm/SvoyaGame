@@ -573,6 +573,8 @@ public partial class MainWindow : Window
 		}
 
 		ShowBoardWindow();
+		this.Activate();
+
 		_boardWindow!.ShowFinal(roundIndex, _activeFinalThemes, _usedCells);
 		_boardWindow!.ShowQuestion(
 			theme.Name,
@@ -611,7 +613,11 @@ public partial class MainWindow : Window
 		_usedCells.Add(usedKey);
 		btn.IsEnabled = false;
 
-			ShowBoardWindow();
+		ShowBoardWindow();
+		// Гарантируем, что фокус клавиатуры остаётся в главном окне,
+		// чтобы горячие клавиши срабатывали сразу
+		this.Activate();
+
 		_boardWindow!.ShowQuestion(
 			theme.Name,
 			price,
@@ -655,6 +661,9 @@ public partial class MainWindow : Window
 		{
 			_boardWindow = new GameBoardWindow();
 
+			_boardWindow.HotkeyPressed += key =>
+				Dispatcher.Invoke(() => HandleHotkey(key));
+
 			_boardWindow.Closed += (_, _) =>
 			{
 				_boardWindow = null;
@@ -662,14 +671,20 @@ public partial class MainWindow : Window
 				BtnHideQuestion.IsEnabled = false;
 			};
 
+			_boardWindow.ShowActivated = false;
 			_boardWindow.Show();
+
 			SyncBoardToCurrentTab();
 			RefreshBoardPlayers();
 			_boardWindow.HighlightFirst(_currentLeader);
 		}
 		else
 		{
-			_boardWindow.Activate();
+			// Намеренно НЕ активируем табло — иначе фокус клавиатуры уходит туда,
+			// и хоткеи главного окна перестают срабатывать.
+			// Если окно свёрнуто — разворачиваем без активации.
+			if (_boardWindow.WindowState == WindowState.Minimized)
+				_boardWindow.WindowState = WindowState.Normal;
 		}
 	}
 
@@ -1027,6 +1042,27 @@ public partial class MainWindow : Window
 			MessageBoxButton.OK, MessageBoxImage.Warning);
 	}
 
+	private void HandleHotkey(System.Windows.Input.Key key)
+	{
+		switch (key)
+		{
+			case System.Windows.Input.Key.Space:
+				if (_boardWindow is { IsLoaded: true, IsQuestionVisible: true })
+					BtnShowAnswer_Click(this, new RoutedEventArgs());
+				break;
+
+			case System.Windows.Input.Key.Q:
+				if (_boardWindow is { IsLoaded: true, IsQuestionVisible: true })
+					BtnHideQuestion_Click(this, new RoutedEventArgs());
+				break;
+
+			case System.Windows.Input.Key.R:
+				if (!string.IsNullOrEmpty(_currentRoom) && _client.Connected)
+					BtnReset_Click(this, new RoutedEventArgs());
+				break;
+		}
+	}
+
 	/// <summary>
 	/// Отправляет на табло актуальный список игроков с очками.
 	/// </summary>
@@ -1047,6 +1083,43 @@ public partial class MainWindow : Window
 		_adminAnswerMedia.Close();
 		_adminQuestionMedia.Close();
 		base.OnClosed(e);
+	}
+
+	protected override void OnPreviewKeyDown(System.Windows.Input.KeyEventArgs e)
+	{
+		// Не мешаем вводу в текстовых полях
+		var focused = System.Windows.Input.Keyboard.FocusedElement;
+		if (focused is System.Windows.Controls.TextBox || focused is System.Windows.Controls.PasswordBox)
+		{
+			base.OnPreviewKeyDown(e);
+			return;
+		}
+
+		// Автоповтор
+		if (e.IsRepeat)
+		{
+			base.OnPreviewKeyDown(e);
+			return;
+		}
+
+		// Модификаторы
+		var mods = System.Windows.Input.Keyboard.Modifiers;
+		if ((mods & (System.Windows.Input.ModifierKeys.Control
+				   | System.Windows.Input.ModifierKeys.Alt)) != 0)
+		{
+			base.OnPreviewKeyDown(e);
+			return;
+		}
+
+		if (e.Key == System.Windows.Input.Key.Space
+			|| e.Key == System.Windows.Input.Key.Q
+			|| e.Key == System.Windows.Input.Key.R)
+		{
+			HandleHotkey(e.Key);
+			e.Handled = true;
+		}
+
+		base.OnPreviewKeyDown(e);
 	}
 
 	private void RoundsTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)

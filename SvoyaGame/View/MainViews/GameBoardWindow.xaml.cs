@@ -477,46 +477,46 @@ public partial class GameBoardWindow : Window
 	}
 
 	// =====================================================================
-	// ВТОРОЙ МОНИТОР
+	// ХОТКЕИ
 	// =====================================================================
-	private void MoveToSecondaryMonitorIfExists()
-	{
-		var screens = System.Windows.Forms.Screen.AllScreens;
+	/// <summary>Событие хоткея для пересылки в MainWindow.</summary>
+	public event Action<System.Windows.Input.Key>? HotkeyPressed;
 
-		if (screens.Length < 2)
+	protected override void OnPreviewKeyDown(System.Windows.Input.KeyEventArgs e)
+	{
+		// Пропускаем автоповтор
+		if (e.IsRepeat)
+		{ base.OnPreviewKeyDown(e); return; }
+
+		// Пропускаем с модификаторами
+		var mods = System.Windows.Input.Keyboard.Modifiers;
+		if ((mods & (System.Windows.Input.ModifierKeys.Control
+				   | System.Windows.Input.ModifierKeys.Alt)) != 0)
 		{
-			WindowStartupLocation = WindowStartupLocation.CenterScreen;
-			Width = 1100;
-			Height = 680;
+			base.OnPreviewKeyDown(e);
 			return;
 		}
 
-		var secondary = screens[1];
-		var bounds = secondary.Bounds;
-
-		var source = PresentationSource.FromVisual(this);
-		double dpiX = 1.0, dpiY = 1.0;
-		if (source?.CompositionTarget != null)
+		// Не перехватываем ввод в текстовых полях (на табло их сейчас нет, но на будущее)
+		var focused = System.Windows.Input.Keyboard.FocusedElement;
+		if (focused is System.Windows.Controls.TextBox
+			|| focused is System.Windows.Controls.PasswordBox)
 		{
-			var m = source.CompositionTarget.TransformToDevice;
-			dpiX = m.M11;
-			dpiY = m.M22;
+			base.OnPreviewKeyDown(e);
+			return;
 		}
 
-		Left = bounds.Left / dpiX;
-		Top = bounds.Top / dpiY;
-		Width = bounds.Width / dpiX;
-		Height = bounds.Height / dpiY;
+		if (e.Key == System.Windows.Input.Key.Space
+			|| e.Key == System.Windows.Input.Key.Q
+			|| e.Key == System.Windows.Input.Key.R)
+		{
+			HotkeyPressed?.Invoke(e.Key);
+			e.Handled = true;
+			return;
+		}
 
-		WindowStartupLocation = WindowStartupLocation.Manual;
-		WindowState = WindowState.Normal;
-		WindowStyle = WindowStyle.None;
+		base.OnPreviewKeyDown(e);
 	}
-
-	// =====================================================================
-	// ХОТКЕИ
-	// =====================================================================
-
 
 	protected override void OnClosed(EventArgs e)
 	{
