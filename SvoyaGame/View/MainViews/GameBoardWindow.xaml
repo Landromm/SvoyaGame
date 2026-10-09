@@ -255,6 +255,45 @@
 					</StackPanel>
 				</Border>
 			</Grid>
+
+			<!-- Режим "Кот в мешке" -->
+			<Grid x:Name="CatInBagView" Visibility="Collapsed"
+      Grid.Column="0">
+				<Border Background="{StaticResource BgPanel}"
+            CornerRadius="20"
+            BorderBrush="{StaticResource AccentGold}"
+            BorderThickness="4"
+            Margin="80,60">
+					<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+						<TextBlock Text="🐱"
+                       FontSize="120"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,20"/>
+
+						<TextBlock Text="КОТ В МЕШКЕ"
+                       Foreground="{StaticResource AccentGold}"
+                       FontSize="56"
+                       FontWeight="Bold"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,20"/>
+
+						<TextBlock Text="Вопрос переходит к другому игроку"
+                       Foreground="{StaticResource TextMain}"
+                       FontSize="28"
+                       FontWeight="Bold"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"
+                       HorizontalAlignment="Center"/>
+
+						<TextBlock x:Name="CatInBagMeta"
+                       Text=""
+                       Foreground="#9FB3C8"
+                       FontSize="18"
+                       HorizontalAlignment="Center"
+                       Margin="0,30,0,0"/>
+					</StackPanel>
+				</Border>
+			</Grid>
 		</Grid>
 
 		<!-- ========== ПРАВАЯ ЧАСТЬ: табло очков ========== -->

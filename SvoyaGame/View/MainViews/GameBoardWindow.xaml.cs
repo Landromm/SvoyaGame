@@ -153,6 +153,7 @@ public partial class GameBoardWindow : Window
 		QuestionView.Visibility = Visibility.Collapsed;
 		GridView.Visibility = Visibility.Visible;
 		AnswerPanel.Visibility = Visibility.Collapsed;
+		CatInBagView.Visibility = Visibility.Collapsed;
 	}
 
 	// =====================================================================
@@ -227,6 +228,7 @@ public partial class GameBoardWindow : Window
 		QuestionView.Visibility = Visibility.Collapsed;
 		GridView.Visibility = Visibility.Visible;
 		AnswerPanel.Visibility = Visibility.Collapsed;
+		CatInBagView.Visibility = Visibility.Collapsed;
 	}
 
 	// =====================================================================
@@ -253,6 +255,7 @@ public partial class GameBoardWindow : Window
 		AnswerPanel.Visibility = Visibility.Collapsed;
 		QuestionView.Visibility = Visibility.Visible;
 		GridView.Visibility = Visibility.Collapsed;
+		CatInBagView.Visibility = Visibility.Collapsed;
 	}
 
 	/// <summary>Вернуться к подложке (сетке или финальному списку).</summary>
@@ -264,6 +267,7 @@ public partial class GameBoardWindow : Window
 		QuestionView.Visibility = Visibility.Collapsed;
 		GridView.Visibility = Visibility.Visible;
 		AnswerPanel.Visibility = Visibility.Collapsed;
+		CatInBagView.Visibility = Visibility.Collapsed;
 	}
 
 	public void ShowAnswer()
@@ -456,6 +460,19 @@ public partial class GameBoardWindow : Window
 			}
 		}
 		audioBtn.Visibility = Visibility.Collapsed;
+	}
+
+	/// <summary>
+	/// Показывает плашку «Кот в мешке» вместо вопроса.
+	/// </summary>
+	public void ShowCatInBag(string themeName, int price)
+	{
+		CatInBagMeta.Text = $"{themeName} • {price}";
+
+		QuestionView.Visibility = Visibility.Collapsed;
+		GridView.Visibility = Visibility.Collapsed;
+		CatInBagView.Visibility = Visibility.Visible;
+		AnswerPanel.Visibility = Visibility.Collapsed;
 	}
 
 	private void AudioButton_Click(object sender, RoutedEventArgs e)

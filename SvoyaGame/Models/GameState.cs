@@ -14,4 +14,5 @@ public class GameState
 	public string? CurrentLeader { get; set; }
 	public List<string> FinalRemovedThemes { get; set; } = new();
 	public bool FinalActive { get; set; }
+	public List<string> CatInBagCells { get; set; } = new();
 }

@@ -35,6 +35,16 @@ public partial class MainWindow : Window
 	private readonly ObservableCollection<FinalAnswerView> _finalAnswers = new();
 	private readonly HashSet<string> _finalBetsApplied = new();
 	private readonly HashSet<string> _usedCells = new(); // "Тема|Цена"
+	private readonly HashSet<string> _catInBagCells = new();
+
+	private class CatInBagPending
+	{
+		public int RoundIndex;
+		public string ThemeName = "";
+		public int Price;
+		public QuestionItem Item = null!;
+	}
+	private CatInBagPending? _catInBagPending;
 	private readonly MediaPlayer _adminAnswerMedia = new();
 	private readonly MediaPlayer _adminQuestionMedia = new();
 	private string? _currentRoom;
@@ -61,7 +71,8 @@ public partial class MainWindow : Window
 
 		GridPlayers.ItemsSource = _players;
 		FinalAnswersList.ItemsSource = _finalAnswers;
-		BuildRoundsUi();
+		GenerateCatInBag();
+		BuildRoundsUi();   // перерисовать с метками
 		CheckMediaOrWarn();
 
 		// ---- Socket.IO ----
@@ -167,7 +178,7 @@ public partial class MainWindow : Window
 
 				// Сыгранные ячейки — очистить
 				_usedCells.Clear();
-
+				GenerateCatInBag();
 				// Лидер — снять подсветку
 				_currentLeader = null;
 				_boardWindow?.HighlightFirst(null);
@@ -235,7 +246,8 @@ public partial class MainWindow : Window
 			UsedCells = _usedCells.ToList(),
 			CurrentLeader = _currentLeader,
 			FinalRemovedThemes = removedThemes,
-			FinalActive = _finalActive
+			FinalActive = _finalActive,
+			CatInBagCells = _catInBagCells.ToList()
 		};
 
 		GameStateService.Save(state);
@@ -315,13 +327,14 @@ public partial class MainWindow : Window
 					// Ключ, совпадающий с форматом в _usedCells
 					string cellKey = theme != null ? $"{ri}|{theme.Name}|{price}" : "";
 					bool isUsed = theme != null && _usedCells.Contains(cellKey);
+					bool isCat = theme != null && _catInBagCells.Contains(cellKey);
 
 					var btn = new Button
 					{
 						Content = isUsed ? "✓" : price.ToString(),
-						Style = (Style)FindResource("GreenButton"),
+						Style = (Style)FindResource(isCat ? "RedButton" : "GreenButton"),
 						Margin = new Thickness(3),
-						FontSize = 24,
+						FontSize = 16,
 						IsEnabled = hasQuestion && !isUsed,
 						Tag = new CellTag
 						{
@@ -332,11 +345,10 @@ public partial class MainWindow : Window
 						}
 					};
 
-					// Сыгранная ячейка — визуально приглушена
+					if (isCat)
+						btn.ToolTip = "🐱 Кот в мешке";
 					if (isUsed)
-					{
 						btn.FontWeight = FontWeights.Bold;
-					}
 
 					btn.Click += CellButton_Click;
 
@@ -663,21 +675,47 @@ public partial class MainWindow : Window
 
 		var theme = tag.Theme;
 		int price = tag.Price;
-
 		var q = theme.GetQuestion(price);
 		if (q is null)
 			return;
 
 		string usedKey = $"{tag.RoundIndex}|{theme.Name}|{price}";
 		_usedCells.Add(usedKey);
-		SaveGameState();
 		btn.IsEnabled = false;
 
-		ShowBoardWindow();
-		// Гарантируем, что фокус клавиатуры остаётся в главном окне,
-		// чтобы горячие клавиши срабатывали сразу
-		this.Activate();
+		// ---- КОТ В МЕШКЕ ----
+		if (_catInBagCells.Contains(usedKey))
+		{
+			_catInBagPending = new CatInBagPending
+			{
+				RoundIndex = tag.RoundIndex,
+				ThemeName = theme.Name,
+				Price = price,
+				Item = q
+			};
 
+			ShowBoardWindow();
+			_boardWindow!.ShowCatInBag(theme.Name, price);
+			_boardWindow!.MarkCellUsed(theme.Name, price);
+
+			// Кнопки
+			BtnRevealQuestion.Visibility = Visibility.Visible;
+			BtnShowAnswer.IsEnabled = false;
+			BtnHideQuestion.IsEnabled = false;
+
+			// Ставки в таблицу
+			foreach (var p in _players)
+				p.BetInput = price.ToString();
+
+			// Панель ответа скрыть до показа вопроса
+			AdminAnswerPanel.Visibility = Visibility.Collapsed;
+
+			SaveGameState();
+			return;
+		}
+
+		// ---- ОБЫЧНЫЙ ВОПРОС ----
+		ShowBoardWindow();
 		_boardWindow!.ShowQuestion(
 			theme.Name,
 			price,
@@ -685,17 +723,37 @@ public partial class MainWindow : Window
 			q.Answer ?? new ContentBlock());
 		_boardWindow!.MarkCellUsed(theme.Name, price);
 
-		// Цена во все строки игроков
 		foreach (var p in _players)
 			p.BetInput = price.ToString();
 
-		// Панель ответа админа
 		ShowAdminCard(theme.Name, price, q.Question, q.Answer);
 
+		BtnRevealQuestion.Visibility = Visibility.Collapsed;
+		BtnShowAnswer.IsEnabled = true;
+		BtnHideQuestion.IsEnabled = true;
+
+		SaveGameState();
+	}
+	private void BtnRevealQuestion_Click(object sender, RoutedEventArgs e)
+	{
+		if (_catInBagPending is null)
+			return;
+
+		var p = _catInBagPending;
+		_catInBagPending = null;
+
+		_boardWindow?.ShowQuestion(
+			p.ThemeName,
+			p.Price,
+			p.Item.Question ?? new ContentBlock(),
+			p.Item.Answer ?? new ContentBlock());
+
+		ShowAdminCard(p.ThemeName, p.Price, p.Item.Question, p.Item.Answer);
+
+		BtnRevealQuestion.Visibility = Visibility.Collapsed;
 		BtnShowAnswer.IsEnabled = true;
 		BtnHideQuestion.IsEnabled = true;
 	}
-
 	// =====================================================================
 	// ОКНО ТАБЛО
 	// =====================================================================
@@ -904,6 +962,12 @@ public partial class MainWindow : Window
 				RestoreGameState(_savedState);
 				StatusText.Text = $"Статус: Комната №{_currentRoom} (восстановлена)";
 			}
+			else
+			{
+				// Новая партия — назначаем «Котов в мешке» заново
+				GenerateCatInBag();
+				BuildRoundsUi();
+			}
 		}
 		catch (Exception ex)
 		{
@@ -929,6 +993,9 @@ public partial class MainWindow : Window
 		_finalActive = state.FinalActive;
 
 		// 3) Перестраиваем вкладки и игровое поле
+		_catInBagCells.Clear();
+		foreach (var k in state.CatInBagCells)
+			_catInBagCells.Add(k);
 		BuildRoundsUi();
 
 		// 4) BuildRoundsUi сбрасывает _activeFinalThemes — восстанавливаем нужное подмножество
@@ -998,6 +1065,8 @@ public partial class MainWindow : Window
 		{
 			SyncBoardToCurrentTab();
 		}
+		BtnRevealQuestion.Visibility = Visibility.Collapsed;
+		_catInBagPending = null;
 	}
 
 	// =====================================================================
@@ -1276,6 +1345,9 @@ public partial class MainWindow : Window
 		BtnShowAnswer.IsEnabled = false;
 		BtnHideQuestion.IsEnabled = false;
 
+		BtnRevealQuestion.Visibility = Visibility.Collapsed;
+		_catInBagPending = null;
+
 		_adminAnswerMedia.Stop();
 		_adminQuestionMedia.Stop();
 
@@ -1383,6 +1455,55 @@ public partial class MainWindow : Window
 		{
 			MessageBox.Show($"Не удалось выполнить сброс:\n{ex.Message}",
 				"Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+		}
+	}
+
+	/// <summary>
+	/// Для каждого обычного раунда случайно выбирает один вопрос
+	/// и помечает его как «Кот в мешке».
+	/// </summary>
+	/// <summary>
+	/// Для каждого обычного раунда случайно выбирает 3 вопроса
+	/// и помечает их как «Кот в мешке».
+	/// Итого 3 раунда × 3 = 9 вопросов.
+	/// </summary>
+	private void GenerateCatInBag()
+	{
+		const int catsPerRound = 3;
+
+		_catInBagCells.Clear();
+		var rnd = new Random();
+
+		for (int ri = 0; ri < _rounds.Count; ri++)
+		{
+			var round = _rounds[ri];
+			if (round.IsFinal)
+				continue;
+
+			// Собираем все вопросы раунда
+			var candidates = new List<string>();
+			foreach (var theme in round.Themes)
+			{
+				foreach (var price in round.Prices)
+				{
+					if (theme.GetQuestion(price) != null)
+						candidates.Add($"{ri}|{theme.Name}|{price}");
+				}
+			}
+
+			if (candidates.Count == 0)
+				continue;
+
+			// Перемешиваем и берём первые N
+			for (int i = candidates.Count - 1; i > 0; i--)
+			{
+				int j = rnd.Next(i + 1);
+				(candidates[i], candidates[j]) = (candidates[j], candidates[i]);
+			}
+
+			int take = Math.Min(catsPerRound, candidates.Count);
+			for (int i = 0; i < take; i++)
+				_catInBagCells.Add(candidates[i]);
 		}
 	}
 }
