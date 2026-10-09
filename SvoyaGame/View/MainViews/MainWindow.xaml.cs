@@ -38,6 +38,7 @@ public partial class MainWindow : Window
 	private readonly MediaPlayer _adminAnswerMedia = new();
 	private readonly MediaPlayer _adminQuestionMedia = new();
 	private string? _currentRoom;
+	private GameState? _savedState;
 	private string? _currentLeader;
 	private GameBoardWindow? _boardWindow;
 	private Button? _finalEndButton;
@@ -48,6 +49,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+		_savedState = GameStateService.Load();
 
 		// ---- Загрузка вопросов ----
 		_rounds = QuestionsLoader.TryLoadRounds(out var loadError) ?? new List<Round>();
@@ -103,29 +105,31 @@ public partial class MainWindow : Window
 			{
 				BtnReset.IsEnabled = true;
 				_currentLeader = winnerName;
+				SaveGameState();
 				_boardWindow?.HighlightFirst(_currentLeader);
 			});
 			return Task.CompletedTask;
 		});
 
-		_client.On("onScoresUpdated", response =>
-        {
-            var list = response.GetValue<List<System.Text.Json.JsonElement>>(0);
-            Dispatcher.Invoke(() => ApplyScores(list));
-            return Task.CompletedTask;
-        });
+		//_client.On("onScoresUpdated", response =>
+		//      {
+		//          var list = response.GetValue<List<System.Text.Json.JsonElement>>(0);
+		//          Dispatcher.Invoke(() => ApplyScores(list));
+		//          return Task.CompletedTask;
+		//      });
 
-        _client.On("onGameReset", response =>
-        {
-            Dispatcher.Invoke(() =>
-            {
-                UpdateTop3(new List<string>());
-                BtnReset.IsEnabled = false;
-                // Дополнительно: разблокировать нажатия в таблице игроков,
-                // если ты решил их блокировать после ответа (см. п.4 ниже)
-            });
-            return Task.CompletedTask;
-        });
+		_client.On("onScoresUpdated", response =>
+		{
+			var list = response.GetValue<List<System.Text.Json.JsonElement>>(0);
+
+			// ВРЕМЕННО: печатаем в окно вывода
+			System.Diagnostics.Debug.WriteLine("=== onScoresUpdated ===");
+			foreach (var el in list)
+				System.Diagnostics.Debug.WriteLine(el.GetRawText());
+
+			Dispatcher.Invoke(() => ApplyScores(list));
+			return Task.CompletedTask;
+		});
 
 		_client.On("onFinalAnswersUpdated", response =>
 		{
@@ -143,6 +147,7 @@ public partial class MainWindow : Window
 
 				// Снимаем подсветку
 				_currentLeader = null;
+				SaveGameState();
 				_boardWindow?.HighlightFirst(null);
 			});
 			return Task.CompletedTask;
@@ -195,9 +200,46 @@ public partial class MainWindow : Window
 				{
 					SyncBoardToCurrentTab();
 				}
+				// Стереть сохранённое состояние
+				GameStateService.Clear();
+				_savedState = null;
 			});
+
+
 			return Task.CompletedTask;
 		});
+	}
+
+	/// <summary>
+	/// Сохраняет текущее состояние партии в game_state.json.
+	/// Вызывается после каждого изменения (сыгранная ячейка, лидер, финал).
+	/// </summary>
+	private void SaveGameState()
+	{
+		if (string.IsNullOrEmpty(_currentRoom))
+			return;
+
+		var removedThemes = new List<string>();
+		if (_finalRound != null)
+		{
+			var activeNames = new HashSet<string>(_activeFinalThemes.Select(t => t.Name));
+			removedThemes = _finalRound.FinalThemes
+				.Where(t => !activeNames.Contains(t.Name))
+				.Select(t => t.Name)
+				.ToList();
+		}
+
+		var state = new GameState
+		{
+			RoomNumber = _currentRoom,
+			UsedCells = _usedCells.ToList(),
+			CurrentLeader = _currentLeader,
+			FinalRemovedThemes = removedThemes,
+			FinalActive = _finalActive
+		};
+
+		GameStateService.Save(state);
+		_savedState = state;
 	}
 
 	// =====================================================================
@@ -344,7 +386,7 @@ public partial class MainWindow : Window
 			{
 				_ = _client.EmitAsync("endFinal", new object[]
 				{
-		new { roomNumber = _currentRoom }
+					new { roomNumber = _currentRoom }
 				});
 			}
 			_finalActive = false;
@@ -358,6 +400,7 @@ public partial class MainWindow : Window
 				return;
 
 			_activeFinalThemes = _finalRound.FinalThemes.ToList();
+			SaveGameState();
 
 			var toRemove = _usedCells.Where(k => k.StartsWith("final|")).ToList();
 			foreach (var k in toRemove)
@@ -470,6 +513,7 @@ public partial class MainWindow : Window
 			return;
 
 		_finalActive = true;
+		SaveGameState();
 		_finalBetsApplied.Clear();
 		_finalAnswers.Clear();
 
@@ -539,6 +583,7 @@ public partial class MainWindow : Window
 			return;
 
 		_activeFinalThemes.Remove(theme);
+		SaveGameState();
 		RenderFinalPanel();
 
 		// Обновляем табло, если оно в режиме финала
@@ -562,7 +607,7 @@ public partial class MainWindow : Window
 		if (_usedCells.Contains(key))
 			return;
 		_usedCells.Add(key);
-
+		SaveGameState();
 		// Переводим игроков на фазу ответов
 		if (!string.IsNullOrEmpty(_currentRoom) && _client.Connected)
 		{
@@ -611,6 +656,7 @@ public partial class MainWindow : Window
 
 		string usedKey = $"{tag.RoundIndex}|{theme.Name}|{price}";
 		_usedCells.Add(usedKey);
+		SaveGameState();
 		btn.IsEnabled = false;
 
 		ShowBoardWindow();
@@ -716,42 +762,71 @@ public partial class MainWindow : Window
 	// РАБОТА С ИГРОКАМИ
 	// =====================================================================
 	private void SyncPlayers(List<string> names)
-    {
-        // Удаляем тех, кого больше нет (на практике сервер их не удаляет)
-        // Добавляем новых
-        foreach (var name in names)
-        {
-            if (_players.All(p => p.Name != name))
-                _players.Add(new PlayerRow(name) { IsOnline = true });
-        }
-		RefreshBoardPlayers();
+	{
+		// 1) Удаляем тех, кого больше нет на сервере
+		var incoming = new HashSet<string>(names);
+		for (int i = _players.Count - 1; i >= 0; i--)
+		{
+			if (!incoming.Contains(_players[i].Name))
+				_players.RemoveAt(i);
+		}
+
+		// 2) Добавляем новых
+		foreach (var name in names)
+		{
+			if (_players.All(p => p.Name != name))
+				_players.Add(new PlayerRow(name) { IsOnline = true });
+		}
 	}
 
-    private void ApplyScores(List<System.Text.Json.JsonElement> list)
-    {
-        foreach (var el in list)
-        {
-            if (el.ValueKind != System.Text.Json.JsonValueKind.Object) continue;
+	private void ApplyScores(List<System.Text.Json.JsonElement> list)
+	{
+		// 1) Собираем пришедшие имена
+		var incoming = new HashSet<string>();
+		foreach (var el in list)
+		{
+			if (el.ValueKind == System.Text.Json.JsonValueKind.Object
+				&& el.TryGetProperty("name", out var n))
+			{
+				var nm = n.GetString();
+				if (!string.IsNullOrEmpty(nm))
+					incoming.Add(nm);
+			}
+		}
 
-            string name = el.TryGetProperty("name", out var n) ? (n.GetString() ?? "") : "";
-            int score = el.TryGetProperty("score", out var s) && s.TryGetInt32(out var si) ? si : 0;
-            bool online = el.TryGetProperty("online", out var o) && o.ValueKind == System.Text.Json.JsonValueKind.True;
+		// 2) Удаляем из таблицы тех, кого нет на сервере
+		for (int i = _players.Count - 1; i >= 0; i--)
+		{
+			if (!incoming.Contains(_players[i].Name))
+				_players.RemoveAt(i);
+		}
 
-            if (string.IsNullOrEmpty(name)) continue;
+		// 3) Обновляем / добавляем
+		foreach (var el in list)
+		{
+			if (el.ValueKind != System.Text.Json.JsonValueKind.Object)
+				continue;
 
-            var row = _players.FirstOrDefault(p => p.Name == name);
-            if (row is null)
-            {
-                row = new PlayerRow(name);
-                _players.Add(row);
-            }
-            row.Score = score;
-            row.IsOnline = online;
-        }
-		RefreshBoardPlayers();
+			string name = el.TryGetProperty("name", out var n2) ? (n2.GetString() ?? "") : "";
+			if (string.IsNullOrEmpty(name))
+				continue;
+
+			int score = el.TryGetProperty("score", out var s) && s.TryGetInt32(out var si) ? si : 0;
+			bool online = el.TryGetProperty("online", out var o)
+						  && o.ValueKind == System.Text.Json.JsonValueKind.True;
+
+			var row = _players.FirstOrDefault(p => p.Name == name);
+			if (row is null)
+			{
+				row = new PlayerRow(name);
+				_players.Add(row);
+			}
+			row.Score = score;
+			row.IsOnline = online;
+		}
 	}
 
-    private void UpdateTop3(List<string> top)
+	private void UpdateTop3(List<string> top)
     {
         Top1Text.Text = "1. " + (top.Count > 0 ? top[0] : "—");
         Top2Text.Text = "2. " + (top.Count > 1 ? top[1] : "—");
@@ -787,37 +862,88 @@ public partial class MainWindow : Window
         }});
     }
 
-    // =====================================================================
-    // СОЗДАНИЕ КОМНАТЫ / СБРОС
-    // =====================================================================
-    private async void BtnCreateRoom_Click(object sender, RoutedEventArgs e)
-    {
-        _currentRoom = TxtRoomNumber.Text.Trim();
-        if (string.IsNullOrEmpty(_currentRoom)) return;
+	// =====================================================================
+	// СОЗДАНИЕ КОМНАТЫ / СБРОС
+	// =====================================================================
+	private async void BtnCreateRoom_Click(object sender, RoutedEventArgs e)
+	{
+		_currentRoom = TxtRoomNumber.Text.Trim();
+		if (string.IsNullOrEmpty(_currentRoom))
+			return;
 
-        try
-        {
-            StatusText.Text = "Подключение...";
-            BtnCreateRoom.IsEnabled = false;
+		try
+		{
+			StatusText.Text = "Подключение...";
+			BtnCreateRoom.IsEnabled = false;
 
-            if (!_client.Connected)
-                await _client.ConnectAsync();
+			if (!_client.Connected)
+				await _client.ConnectAsync();
 
-            await _client.EmitAsync("createRoom", new object[] { _currentRoom });
+			await _client.EmitAsync("createRoom", new object[] { _currentRoom });
 
-            StatusText.Text = $"Статус: Активна комната №{_currentRoom}";
-            TxtRoomNumber.IsEnabled = false;
-            BtnReset.IsEnabled = true;
-        }
-        catch (Exception ex)
-        {
-            BtnCreateRoom.IsEnabled = true;
-            StatusText.Text = "Ошибка подключения!";
-            MessageBox.Show($"Ошибка: {ex.Message}");
-        }
-    }
+			StatusText.Text = $"Статус: Активна комната №{_currentRoom}";
+			TxtRoomNumber.IsEnabled = false;
 
-    private async void BtnReset_Click(object sender, RoutedEventArgs e)
+			// Восстановление сохранённой партии
+			if (_savedState != null && _savedState.RoomNumber == _currentRoom)
+			{
+				RestoreGameState(_savedState);
+				StatusText.Text = $"Статус: Комната №{_currentRoom} (восстановлена)";
+			}
+		}
+		catch (Exception ex)
+		{
+			BtnCreateRoom.IsEnabled = true;
+			StatusText.Text = "Ошибка подключения!";
+			MessageBox.Show($"Ошибка: {ex.Message}");
+		}
+	}
+
+	/// <summary>
+	/// Восстанавливает состояние партии из game_state.json.
+	/// Вызывается сразу после успешного createRoom, если номер комнаты совпадает.
+	/// </summary>
+	private void RestoreGameState(GameState state)
+	{
+		// 1) Сыгранные ячейки
+		_usedCells.Clear();
+		foreach (var key in state.UsedCells)
+			_usedCells.Add(key);
+
+		// 2) Лидер и финальные флаги — до перестроения UI
+		_currentLeader = state.CurrentLeader;
+		_finalActive = state.FinalActive;
+
+		// 3) Перестраиваем вкладки и игровое поле
+		BuildRoundsUi();
+
+		// 4) BuildRoundsUi сбрасывает _activeFinalThemes — восстанавливаем нужное подмножество
+		if (_finalRound != null && state.FinalRemovedThemes.Count > 0)
+		{
+			var removedSet = new HashSet<string>(state.FinalRemovedThemes);
+			_activeFinalThemes = _finalRound.FinalThemes
+				.Where(t => !removedSet.Contains(t.Name))
+				.ToList();
+			RenderFinalPanel();
+		}
+
+		// 5) Панель ответов финала — если финал был активен
+		if (_finalActive)
+		{
+			FinalAnswersPanel.Visibility = Visibility.Visible;
+			if (_finalEndButton != null)
+				_finalEndButton.Visibility = Visibility.Visible;
+		}
+
+		// 6) Обновить табло, если открыто
+		if (_boardWindow is { IsLoaded: true })
+		{
+			SyncBoardToCurrentTab();
+			_boardWindow.HighlightFirst(_currentLeader);
+		}
+	}
+
+	private async void BtnReset_Click(object sender, RoutedEventArgs e)
     {
         if (!_client.Connected || _currentRoom is null) return;
 
@@ -1080,6 +1206,7 @@ public partial class MainWindow : Window
 
 	protected override void OnClosed(EventArgs e)
 	{
+		SaveGameState();   // сохранить перед выходом
 		_adminAnswerMedia.Close();
 		_adminQuestionMedia.Close();
 		base.OnClosed(e);
@@ -1198,6 +1325,7 @@ public partial class MainWindow : Window
 		});
 
 		_finalActive = false;
+		SaveGameState();
 		_finalBetsApplied.Clear();
 		_finalAnswers.Clear();
 

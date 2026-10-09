@@ -59,19 +59,110 @@ const io = new Server(httpServer, {
     cors: { origin: "*", methods: ["GET", "POST"] }
 });
 
-/**
- * Структура комнаты:
- * activeRooms: Map<roomNumber, {
- *     winner: string|null,
- *     topClicks: string[],   // до 3 имён в порядке нажатия
- *     players: Map<playerName, { online: bool, score: number }>
- * }>
- */
 const activeRooms = new Map();
-
+//loadServerState();
 // socket.id -> { roomNumber, playerName }
 const socketRegistry = new Map();
 
+// ============================================================
+// СОХРАНЕНИЕ СОСТОЯНИЯ
+// ============================================================
+const STATE_FILE = path.join(__dirname, "server_state.json");
+let saveTimer = null;
+
+function loadServerState() {
+    try {
+        if (!fs.existsSync(STATE_FILE)) return;
+        const raw = fs.readFileSync(STATE_FILE, "utf8");
+        const data = JSON.parse(raw);
+        if (!data || !data.rooms) return;
+
+        for (const [roomNumber, room] of Object.entries(data.rooms)) {
+            const players = new Map();
+            if (room.players) {
+                for (const [name, info] of Object.entries(room.players)) {
+                    players.set(name, {
+                        online: false,                 // при перезапуске все оффлайн
+                        score: Number(info.score) || 0
+                    });
+                }
+            }
+
+            const finalAnswers = new Map();
+            if (room.finalAnswers) {
+                for (const [name, fa] of Object.entries(room.finalAnswers)) {
+                    finalAnswers.set(name, {
+                        bet: Number(fa.bet) || 0,
+                        answer: String(fa.answer || ""),
+                        betSubmitted: !!fa.betSubmitted,
+                        answerSubmitted: !!fa.answerSubmitted
+                    });
+                }
+            }
+
+            activeRooms.set(roomNumber, {
+                winner: room.winner || null,
+                topClicks: Array.isArray(room.topClicks) ? room.topClicks : [],
+                players,
+                finalActive: !!room.finalActive,
+                finalPhase: room.finalPhase || null,
+                finalAnswers
+            });
+        }
+        console.log(`Состояние восстановлено: комнат ${activeRooms.size}`);
+    } catch (e) {
+        console.warn("Не удалось загрузить состояние:", e.message);
+    }
+}
+
+function saveServerStateNow() {
+    try {
+        const rooms = {};
+        for (const [roomNumber, room] of activeRooms.entries()) {
+            const players = {};
+            for (const [name, info] of room.players.entries()) {
+                players[name] = { score: info.score || 0 };
+            }
+
+            const finalAnswers = {};
+            for (const [name, fa] of room.finalAnswers.entries()) {
+                finalAnswers[name] = {
+                    bet: fa.bet || 0,
+                    answer: fa.answer || "",
+                    betSubmitted: !!fa.betSubmitted,
+                    answerSubmitted: !!fa.answerSubmitted
+                };
+            }
+
+            rooms[roomNumber] = {
+                players,
+                winner: room.winner || null,
+                topClicks: room.topClicks || [],
+                finalActive: !!room.finalActive,
+                finalPhase: room.finalPhase || null,
+                finalAnswers
+            };
+        }
+
+        const data = { version: 1, rooms };
+        fs.writeFileSync(STATE_FILE, JSON.stringify(data, null, 2), "utf8");
+    } catch (e) {
+        console.warn("Не удалось сохранить состояние:", e.message);
+    }
+}
+
+function scheduleSave() {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+        saveTimer = null;
+        saveServerStateNow();
+    }, 500);
+}
+
+// Сохраняем при выходе
+process.on("SIGINT", () => { saveServerStateNow(); process.exit(0); });
+process.on("SIGTERM", () => { saveServerStateNow(); process.exit(0); });
+process.on("exit", () => { if (saveTimer) { clearTimeout(saveTimer); saveServerStateNow(); } });
 // ============================================================
 // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 // ============================================================
@@ -127,15 +218,14 @@ io.on("connection", (socket) => {
     socket.on("createRoom", (roomNumber) => {
         if (!roomNumber) return;
 
-        // Если такая комната уже есть — не пересоздаём, чтобы не сбросить состояние
         if (!activeRooms.has(roomNumber)) {
             activeRooms.set(roomNumber, {
                 winner: null,
                 topClicks: [],
                 players: new Map(),
                 finalActive: false,
-                finalPhase: null,           // "bets" | "answers"
-                finalAnswers: new Map()     // playerName -> { bet, answer, betSubmitted, answerSubmitted }
+                finalPhase: null,
+                finalAnswers: new Map()
             });
             console.log(`Администратор создал комнату: ${roomNumber}`);
         } else {
@@ -143,12 +233,20 @@ io.on("connection", (socket) => {
         }
 
         socket.join(roomNumber);
-
         const room = activeRooms.get(roomNumber);
-        // Сразу отправляем админу актуальные данные
         socket.emit("onPlayersListUpdated", Array.from(room.players.keys()));
         socket.emit("onScoresUpdated", buildScoresPayload(room));
         socket.emit("onTopClicksUpdated", room.topClicks);
+
+        if (room.finalActive) {
+            socket.emit("onFinalStarted");
+            if (room.finalPhase === "answers") {
+                socket.emit("onFinalAnswerPhase");
+            }
+        }
+        broadcastFinalAnswers(roomNumber, room);
+
+        scheduleSave();
     });
 
     // --------------------------------------------------------
@@ -183,7 +281,7 @@ io.on("connection", (socket) => {
         // Обновляем всех
         broadcastPlayersList(roomNumber, room);
         broadcastScores(roomNumber, room);
-
+        scheduleSave();
         // Если уже есть победитель — сообщаем только вернувшемуся
         if (room.winner) {
             socket.emit("onWinnerDetected", room.winner);
@@ -229,6 +327,7 @@ io.on("connection", (socket) => {
 
         // Рассылаем обновление топ-3 всем в комнате
         broadcastTopClicks(roomNumber, room);
+        scheduleSave();
     });
 
     // --------------------------------------------------------
@@ -256,6 +355,7 @@ io.on("connection", (socket) => {
         // Отправляем лично игроку его обновлённый счёт
         const info = room.players.get(playerName);
         io.to(roomNumber).emit("onMyScore", { name: playerName, score: info.score });
+        scheduleSave();
     });
 
     // --------------------------------------------------------
@@ -271,6 +371,7 @@ io.on("connection", (socket) => {
 
         io.to(roomNumber).emit("onGameReset");
         broadcastTopClicks(roomNumber, room);
+        scheduleSave();
     });
 
     // --------------------------------------------------------
@@ -297,6 +398,7 @@ io.on("connection", (socket) => {
         broadcastScores(roomNumber, room);
         broadcastTopClicks(roomNumber, room);
         broadcastFinalAnswers(roomNumber, room);
+        scheduleSave();
     });
 
     // --------------------------------------------------------
@@ -317,6 +419,7 @@ io.on("connection", (socket) => {
 
         io.to(roomNumber).emit("onFinalStarted");
         broadcastFinalAnswers(roomNumber, room);
+        scheduleSave();
     });
 
     // --------------------------------------------------------
@@ -351,6 +454,7 @@ io.on("connection", (socket) => {
 
         console.log(`Финал [${roomNumber}] ${playerName}: ставка ${betNum}`);
         broadcastFinalAnswers(roomNumber, room);
+        scheduleSave();
     });
 
     // --------------------------------------------------------
@@ -382,6 +486,7 @@ io.on("connection", (socket) => {
 
         io.to(roomNumber).emit("onFinalAnswerPhase");
         broadcastFinalAnswers(roomNumber, room);
+        scheduleSave();
     });
 
     // --------------------------------------------------------
@@ -407,6 +512,7 @@ io.on("connection", (socket) => {
 
         console.log(`Финал [${roomNumber}] ${playerName}: ответ "${answerStr}"`);
         broadcastFinalAnswers(roomNumber, room);
+        scheduleSave();
     });
 
     // --------------------------------------------------------
@@ -424,6 +530,7 @@ io.on("connection", (socket) => {
 
         io.to(roomNumber).emit("onFinalEnded");
         broadcastFinalAnswers(roomNumber, room);
+        scheduleSave();
     });
 
     socket.on("disconnect", () => {
@@ -440,6 +547,7 @@ io.on("connection", (socket) => {
 
                 // Обновляем статус в таблице админа
                 broadcastScores(roomNumber, room);
+                scheduleSave();
             }
         }
     });
@@ -448,6 +556,9 @@ io.on("connection", (socket) => {
 // ============================================================
 // СТАРТ
 // ============================================================
+// Загружаем сохранённое состояние ДО старта прослушивания
+loadServerState();
+
 const PORT = process.env.PORT || 5000;
 httpServer.listen(PORT, () => {
     console.log(`===================================================`);
