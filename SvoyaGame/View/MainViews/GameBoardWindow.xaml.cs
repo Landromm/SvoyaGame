@@ -88,7 +88,7 @@ public partial class GameBoardWindow : Window
 					Text = theme?.Name ?? "—",
 					Foreground = (Brush)FindResource("AccentGold"),
 					FontWeight = FontWeights.Bold,
-					FontSize = 13,
+					FontSize = 28,
 					TextWrapping = TextWrapping.Wrap,
 					TextAlignment = TextAlignment.Center,
 					VerticalAlignment = VerticalAlignment.Center,
@@ -117,7 +117,7 @@ public partial class GameBoardWindow : Window
 							? (Brush)FindResource("AccentGold")
 							: new SolidColorBrush(Color.FromRgb(0x2C, 0x4A, 0x75)),
 						FontWeight = FontWeights.Bold,
-						FontSize = 26,
+						FontSize = 36,
 						HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
 						VerticalAlignment = VerticalAlignment.Center
 					}

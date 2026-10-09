@@ -295,7 +295,7 @@ public partial class MainWindow : Window
 						Text = theme?.Name ?? "—",
 						Foreground = (Brush)FindResource("AccentGold"),
 						FontWeight = FontWeights.Bold,
-						FontSize = 13,
+						FontSize = 16,
 						TextWrapping = TextWrapping.Wrap,
 						TextAlignment = TextAlignment.Center,
 						VerticalAlignment = VerticalAlignment.Center,
@@ -321,7 +321,7 @@ public partial class MainWindow : Window
 						Content = isUsed ? "✓" : price.ToString(),
 						Style = (Style)FindResource("GreenButton"),
 						Margin = new Thickness(3),
-						FontSize = 16,
+						FontSize = 24,
 						IsEnabled = hasQuestion && !isUsed,
 						Tag = new CellTag
 						{

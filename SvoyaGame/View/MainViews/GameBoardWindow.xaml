@@ -270,7 +270,7 @@
 				</Grid.RowDefinitions>
 
 				<TextBlock Grid.Row="0"
-                       Text="🏆 ТАБЛО ОЧКОВ"
+                       Text="🏆 ТАБЛИЦА ОЧКОВ"
                        Foreground="{StaticResource AccentGold}"
                        FontSize="20"
                        FontWeight="Bold"
