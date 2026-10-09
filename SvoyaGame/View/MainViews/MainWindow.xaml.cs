@@ -309,13 +309,20 @@ public partial class MainWindow : Window
 				for (int c = 0; c < prices.Length; c++)
 				{
 					int price = prices[c];
+
+					bool hasQuestion = theme != null && theme.GetQuestion(price) != null;
+
+					// Ключ, совпадающий с форматом в _usedCells
+					string cellKey = theme != null ? $"{ri}|{theme.Name}|{price}" : "";
+					bool isUsed = theme != null && _usedCells.Contains(cellKey);
+
 					var btn = new Button
 					{
-						Content = price.ToString(),
+						Content = isUsed ? "✓" : price.ToString(),
 						Style = (Style)FindResource("GreenButton"),
 						Margin = new Thickness(3),
 						FontSize = 16,
-						IsEnabled = theme != null && theme.GetQuestion(price) != null,
+						IsEnabled = hasQuestion && !isUsed,
 						Tag = new CellTag
 						{
 							Round = round,
@@ -324,10 +331,17 @@ public partial class MainWindow : Window
 							Price = price
 						}
 					};
+
+					// Сыгранная ячейка — визуально приглушена
+					if (isUsed)
+					{
+						btn.FontWeight = FontWeights.Bold;
+					}
+
 					btn.Click += CellButton_Click;
 
 					if (theme != null)
-						_cellButtons[$"{ri}|{theme.Name}|{price}"] = btn;
+						_cellButtons[cellKey] = btn;
 
 					grid.Children.Add(btn);
 				}
