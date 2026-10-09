@@ -896,7 +896,10 @@ public partial class MainWindow : Window
 			row.Score = score;
 			row.IsOnline = online;
 		}
-	}
+
+        // Обновляем панель игроков на табло
+        RefreshBoardPlayers();
+    }
 
 	private void UpdateTop3(List<string> top)
     {
