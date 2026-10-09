@@ -28,6 +28,21 @@ public class BoardPlayer : INotifyPropertyChanged
 		set { if (_isOnline == value) return; _isOnline = value; OnPropertyChanged(); }
 	}
 
+	private bool _isFirst;
+
+	/// <summary>Первый нажавший кнопку в текущем раунде.</summary>
+	public bool IsFirst
+	{
+		get => _isFirst;
+		set
+		{
+			if (_isFirst == value)
+				return;
+			_isFirst = value;
+			OnPropertyChanged();
+		}
+	}
+
 	/// <summary>Место в текущем рейтинге (1 — лидер).</summary>
 	public int Rank
 	{

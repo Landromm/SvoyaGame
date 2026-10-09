@@ -274,6 +274,32 @@ io.on("connection", (socket) => {
     });
 
     // --------------------------------------------------------
+    // [АДМИН] Полный сброс игры
+    // --------------------------------------------------------
+    socket.on("resetAllGame", (data) => {
+        const { roomNumber } = data || {};
+        const room = activeRooms.get(roomNumber);
+        if (!room) return;
+
+        room.winner = null;
+        room.topClicks = [];
+        room.finalActive = false;
+        room.finalPhase = null;
+        room.finalAnswers.clear();
+
+        for (const [name, info] of room.players.entries()) {
+            info.score = 0;
+        }
+
+        console.log(`ПОЛНЫЙ СБРОС игры в комнате ${roomNumber}`);
+
+        io.to(roomNumber).emit("onGameFullReset");
+        broadcastScores(roomNumber, room);
+        broadcastTopClicks(roomNumber, room);
+        broadcastFinalAnswers(roomNumber, room);
+    });
+
+    // --------------------------------------------------------
     // Отключение
     // --------------------------------------------------------
     // --------------------------------------------------------

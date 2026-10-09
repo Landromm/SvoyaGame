@@ -38,7 +38,8 @@ public partial class MainWindow : Window
 	private readonly MediaPlayer _adminAnswerMedia = new();
 	private readonly MediaPlayer _adminQuestionMedia = new();
 	private string? _currentRoom;
-    private GameBoardWindow? _boardWindow;
+	private string? _currentLeader;
+	private GameBoardWindow? _boardWindow;
 	private Button? _finalEndButton;
 
 	// Хранит ссылки на кнопки ячеек: ключ = "тема|цена"
@@ -81,27 +82,33 @@ public partial class MainWindow : Window
             return Task.CompletedTask;
         });
 
-        _client.On("onTopClicksUpdated", response =>
-        {
-            var top = response.GetValue<List<string>>(0);
-            Dispatcher.Invoke(() =>
-            {
-                UpdateTop3(top);
-                BtnReset.IsEnabled = top.Count > 0;
-            });
-            return Task.CompletedTask;
-        });
+		_client.On("onTopClicksUpdated", response =>
+		{
+			var top = response.GetValue<List<string>>(0);
+			Dispatcher.Invoke(() =>
+			{
+				UpdateTop3(top);
+				BtnReset.IsEnabled = top.Count > 0;
 
-        _client.On("onWinnerDetected", response =>
-        {
-            Dispatcher.Invoke(() =>
-            {
-                BtnReset.IsEnabled = true;
-            });
-            return Task.CompletedTask;
-        });
+				_currentLeader = top.Count > 0 ? top[0] : null;
+				_boardWindow?.HighlightFirst(_currentLeader);
+			});
+			return Task.CompletedTask;
+		});
 
-        _client.On("onScoresUpdated", response =>
+		_client.On("onWinnerDetected", response =>
+		{
+			var winnerName = response.GetValue<string>(0);
+			Dispatcher.Invoke(() =>
+			{
+				BtnReset.IsEnabled = true;
+				_currentLeader = winnerName;
+				_boardWindow?.HighlightFirst(_currentLeader);
+			});
+			return Task.CompletedTask;
+		});
+
+		_client.On("onScoresUpdated", response =>
         {
             var list = response.GetValue<List<System.Text.Json.JsonElement>>(0);
             Dispatcher.Invoke(() => ApplyScores(list));
@@ -124,6 +131,71 @@ public partial class MainWindow : Window
 		{
 			var list = response.GetValue<List<System.Text.Json.JsonElement>>(0);
 			Dispatcher.Invoke(() => UpdateFinalAnswers(list));
+			return Task.CompletedTask;
+		});
+
+		_client.On("onGameReset", response =>
+		{
+			Dispatcher.Invoke(() =>
+			{
+				UpdateTop3(new List<string>());
+				BtnReset.IsEnabled = false;
+
+				// Снимаем подсветку
+				_currentLeader = null;
+				_boardWindow?.HighlightFirst(null);
+			});
+			return Task.CompletedTask;
+		});
+
+		_client.On("onGameFullReset", response =>
+		{
+			Dispatcher.Invoke(() =>
+			{
+				// Сбрасываем всё финальное состояние
+				_finalActive = false;
+				_finalBetsApplied.Clear();
+				_finalAnswers.Clear();
+				FinalAnswersPanel.Visibility = Visibility.Collapsed;
+				if (_finalEndButton != null)
+					_finalEndButton.Visibility = Visibility.Collapsed;
+
+				// Сыгранные ячейки — очистить
+				_usedCells.Clear();
+
+				// Лидер — снять подсветку
+				_currentLeader = null;
+				_boardWindow?.HighlightFirst(null);
+
+				// ТОП-3 очистить
+				UpdateTop3(new List<string>());
+
+				// Кнопка сброса раунда выключить — сбрасывать нечего
+				BtnReset.IsEnabled = false;
+
+				// Панель ответа админа — скрыть
+				AdminAnswerPanel.Visibility = Visibility.Collapsed;
+				BtnShowAnswer.IsEnabled = false;
+				BtnHideQuestion.IsEnabled = false;
+				_adminAnswerMedia.Stop();
+				_adminQuestionMedia.Stop();
+
+				// Вернуть все финальные темы
+				if (_finalRound != null)
+				{
+					_activeFinalThemes = _finalRound.FinalThemes.ToList();
+					RenderFinalPanel();
+				}
+
+				// Перестроить игровое поле — все ячейки снова активны
+				BuildRoundsUi();
+
+				// Обновить табло
+				if (_boardWindow is { IsLoaded: true })
+				{
+					SyncBoardToCurrentTab();
+				}
+			});
 			return Task.CompletedTask;
 		});
 	}
@@ -593,6 +665,7 @@ public partial class MainWindow : Window
 			_boardWindow.Show();
 			SyncBoardToCurrentTab();
 			RefreshBoardPlayers();
+			_boardWindow.HighlightFirst(_currentLeader);
 		}
 		else
 		{
@@ -1059,6 +1132,43 @@ public partial class MainWindow : Window
 
 		if (_finalEndButton != null)
 			_finalEndButton.Visibility = Visibility.Collapsed;
+	}
+
+	private async void BtnResetAll_Click(object sender, RoutedEventArgs e)
+	{
+		if (string.IsNullOrEmpty(_currentRoom) || !_client.Connected)
+		{
+			MessageBox.Show("Сначала создайте комнату.",
+				"Сброс игры", MessageBoxButton.OK, MessageBoxImage.Information);
+			return;
+		}
+
+		var confirm = MessageBox.Show(
+			"Полный сброс игры:\n" +
+			"• очки всех игроков обнулятся;\n" +
+			"• все сыгранные вопросы станут доступны снова;\n" +
+			"• финал вернётся к исходному списку тем;\n" +
+			"• ТОП-3 и подсветка лидера сбросятся.\n\n" +
+			"Продолжить?",
+			"Подтверждение",
+			MessageBoxButton.YesNo,
+			MessageBoxImage.Warning);
+
+		if (confirm != MessageBoxResult.Yes)
+			return;
+
+		try
+		{
+			await _client.EmitAsync("resetAllGame", new object[]
+			{
+			new { roomNumber = _currentRoom }
+			});
+		}
+		catch (Exception ex)
+		{
+			MessageBox.Show($"Не удалось выполнить сброс:\n{ex.Message}",
+				"Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+		}
 	}
 }
 

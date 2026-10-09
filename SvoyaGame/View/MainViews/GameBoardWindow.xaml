@@ -292,10 +292,21 @@
 					<ItemsControl x:Name="PlayersList">
 						<ItemsControl.ItemTemplate>
 							<DataTemplate>
-								<Border Background="#0B1E3A"
-                                    CornerRadius="8"
-                                    Padding="12,8"
-                                    Margin="0,4">
+								<Border CornerRadius="8" Padding="12,8" Margin="0,4">
+									<Border.Style>
+										<Style TargetType="Border">
+											<Setter Property="Background" Value="#0B1E3A"/>
+											<Setter Property="BorderThickness" Value="0"/>
+											<Setter Property="BorderBrush" Value="Transparent"/>
+											<Style.Triggers>
+												<DataTrigger Binding="{Binding IsFirst}" Value="True">
+													<Setter Property="Background" Value="#3D2F00"/>
+													<Setter Property="BorderBrush" Value="#FFD166"/>
+													<Setter Property="BorderThickness" Value="2"/>
+												</DataTrigger>
+											</Style.Triggers>
+										</Style>
+									</Border.Style>
 									<Grid>
 										<Grid.ColumnDefinitions>
 											<ColumnDefinition Width="Auto"/>
@@ -335,6 +346,9 @@
 														<DataTrigger Binding="{Binding IsOnline}" Value="False">
 															<Setter Property="Foreground" Value="#7F8C8D"/>
 															<Setter Property="FontStyle" Value="Italic"/>
+														</DataTrigger>
+														<DataTrigger Binding="{Binding IsFirst}" Value="True">
+															<Setter Property="Foreground" Value="#FFD166"/>
 														</DataTrigger>
 													</Style.Triggers>
 												</Style>

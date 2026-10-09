@@ -362,6 +362,16 @@ public partial class GameBoardWindow : Window
 		PlayersScroll.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
 	}
 
+	/// <summary>
+	/// Подсвечивает игрока, который первым нажал кнопку.
+	/// Передайте null, чтобы снять подсветку.
+	/// </summary>
+	public void HighlightFirst(string? playerName)
+	{
+		foreach (var p in _boardPlayers)
+			p.IsFirst = !string.IsNullOrEmpty(playerName) && p.Name == playerName;
+	}
+
 	// =====================================================================
 	// МЕДИА-БЛОК
 	// =====================================================================

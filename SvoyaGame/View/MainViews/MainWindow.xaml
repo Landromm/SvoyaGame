@@ -197,23 +197,16 @@
                 Margin="0,0,12,0">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <!-- заголовок -->
-                    <RowDefinition Height="Auto"/>
-                    <!-- создание комнаты -->
-                    <RowDefinition Height="Auto"/>
-                    <!-- статус -->
-                    <RowDefinition Height="Auto"/>
-                    <!-- ТОП-3 -->
-                    <RowDefinition Height="Auto"/>
-                    <!-- подпись таблицы -->
-                    <RowDefinition Height="*"/>
-                    <!-- таблица игроков -->
-                    <RowDefinition Height="Auto"/>
-                    <!-- кнопка сброса -->
-                    <RowDefinition Height="Auto"/>
-                    <!-- показать ответ / свернуть вопрос -->
-                </Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/> <!-- заголовок -->
+                    <RowDefinition Height="Auto"/> <!-- создание комнаты -->
+                    <RowDefinition Height="Auto"/> <!-- статус -->
+                    <RowDefinition Height="Auto"/> <!-- ТОП-3 -->
+                    <RowDefinition Height="Auto"/> <!-- подпись таблицы -->
+                    <RowDefinition Height="*"/> <!-- таблица игроков -->
+                    <RowDefinition Height="Auto"/> <!-- кнопка сброса -->
+                    <RowDefinition Height="Auto"/> <!-- показать ответ / свернуть вопрос -->
+					<RowDefinition Height="Auto"/> <!-- Полный сброс -->
+				</Grid.RowDefinitions>
 
                 <!-- Заголовок -->
                 <TextBlock Grid.Row="0"
@@ -423,7 +416,16 @@
                         Margin="4,0,0,0"
                         FontSize="12"/>
                 </Grid>
-            </Grid>
+
+				<Button x:Name="BtnResetAll"
+                    Grid.Row="8"
+                    Style="{StaticResource RedButton}"
+                    Content="⚠ СБРОСИТЬ ВСЮ ИГРУ"
+                    Click="BtnResetAll_Click"
+                    Height="36"
+                    Margin="0,8,0,0"
+                    FontSize="13"/>
+			</Grid>
         </Border>
 
         <!-- ===================================================== -->

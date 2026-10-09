@@ -372,6 +372,21 @@ function unlockAudio() {
                 status.className = "";
             });
 
+			socket.on("onGameFullReset", () => {
+				// Возвращаем буззер, прячем финальные формы
+				document.getElementById('finalBlock').style.display = 'none';
+				document.getElementById('betPhase').style.display = 'none';
+				document.getElementById('answerPhase').style.display = 'none';
+
+				const buzzer = document.getElementById('buzzer');
+				buzzer.style.display = 'block';
+				buzzer.disabled = false;
+
+				const status = document.getElementById('status');
+				status.innerText = "Игра полностью сброшена. Приготовьтесь...";
+				status.className = "";
+			});
+
 			// --------------------------------------------------------
 			// Финал: фаза ставок
 			// --------------------------------------------------------
