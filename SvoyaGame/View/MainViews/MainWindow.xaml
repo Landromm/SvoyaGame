@@ -280,7 +280,25 @@
                           Grid.Row="5"
                           Style="{StaticResource DarkDataGrid}">
                     <DataGrid.Columns>
-                        <!-- 1. Статус -->
+						<!-- 0. Удалить игрока -->
+						<DataGridTemplateColumn Header="" Width="32">
+							<DataGridTemplateColumn.CellTemplate>
+								<DataTemplate>
+									<Button Content="✕"
+                    Style="{StaticResource RedButton}"
+                    Width="24"
+                    Height="24"
+                    Padding="0"
+                    FontSize="12"
+                    ToolTip="Удалить игрока из комнаты"
+                    Click="BtnRemovePlayer_Click"
+                    Tag="{Binding}"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"/>
+								</DataTemplate>
+							</DataGridTemplateColumn.CellTemplate>
+						</DataGridTemplateColumn>
+						<!-- 1. Статус -->
                         <DataGridTemplateColumn Header="✔" Width="34">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>

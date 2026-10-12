@@ -118,16 +118,14 @@ public partial class MainWindow : Window
 				_currentLeader = winnerName;
 				SaveGameState();
 				_boardWindow?.HighlightFirst(_currentLeader);
+
+				// Останавливаем всё аудио — игрок нажал буззер
+				_boardWindow?.StopAllAudio();
+				_adminQuestionMedia.Stop();
+				_adminAnswerMedia.Stop();
 			});
 			return Task.CompletedTask;
 		});
-
-		//_client.On("onScoresUpdated", response =>
-		//      {
-		//          var list = response.GetValue<List<System.Text.Json.JsonElement>>(0);
-		//          Dispatcher.Invoke(() => ApplyScores(list));
-		//          return Task.CompletedTask;
-		//      });
 
 		_client.On("onScoresUpdated", response =>
 		{
@@ -1469,6 +1467,35 @@ public partial class MainWindow : Window
 			MessageBox.Show($"Не удалось выполнить сброс:\n{ex.Message}",
 				"Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
 		}
+	}
+
+	private async void BtnRemovePlayer_Click(object sender, RoutedEventArgs e)
+	{
+		if (sender is not Button btn || btn.Tag is not PlayerRow player)
+			return;
+
+		if (string.IsNullOrEmpty(_currentRoom) || !_client.Connected)
+		{
+			MessageBox.Show("Нет активной комнаты.",
+				"Удаление игрока", MessageBoxButton.OK, MessageBoxImage.Warning);
+			return;
+		}
+
+		var confirm = MessageBox.Show(
+			$"Удалить игрока «{player.Name}» из комнаты?\n\n" +
+			"Игрок исчезнет из таблицы и не сможет вернуться в эту партию " +
+			"без повторного входа (пока админ не сбросит игру или комнату).",
+			"Подтверждение",
+			MessageBoxButton.YesNo,
+			MessageBoxImage.Question);
+
+		if (confirm != MessageBoxResult.Yes)
+			return;
+
+		await _client.EmitAsync("removePlayer", new object[]
+		{
+		new { roomNumber = _currentRoom, playerName = player.Name }
+		});
 	}
 
 	/// <summary>

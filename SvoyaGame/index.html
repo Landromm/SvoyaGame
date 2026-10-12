@@ -387,6 +387,19 @@ function unlockAudio() {
 				status.className = "";
 			});
 
+			socket.on("onKicked", (data) => {
+				const reason = (data && data.reason) || "Вас удалили из комнаты.";
+				alert(reason);
+
+				// Возвращаемся на форму входа
+				document.getElementById('loginForm').style.display = 'block';
+				document.getElementById('gameArea').style.display = 'none';
+				document.getElementById('buzzer').style.display = 'none';
+				document.getElementById('finalBlock').style.display = 'none';
+
+				// Отключаем сокет, чтобы игра не тянулась в фоне
+				try { socket.disconnect(); } catch (_) { }
+			});
 			// --------------------------------------------------------
 			// Финал: фаза ставок
 			// --------------------------------------------------------

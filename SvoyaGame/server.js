@@ -1,4 +1,4 @@
-const http = require("http");
+﻿const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const { Server } = require("socket.io");
@@ -309,6 +309,11 @@ io.on("connection", (socket) => {
         const room = activeRooms.get(roomNumber);
         if (!room) return;
 
+        // Игрок удалён из комнаты — клик игнорируем
+        if (!room.players.has(playerName)) {
+            console.log(`playerClick: ${playerName} не в комнате ${roomNumber} — игнорируем`);
+            return;
+        }
         // Топ-3 уже заполнен — нажатие игнорируем
         if (room.topClicks.length >= 3) return;
 
@@ -355,6 +360,61 @@ io.on("connection", (socket) => {
         // Отправляем лично игроку его обновлённый счёт
         const info = room.players.get(playerName);
         io.to(roomNumber).emit("onMyScore", { name: playerName, score: info.score });
+        scheduleSave();
+    });
+
+    // --------------------------------------------------------
+    // [АДМИН] Удалить игрока из комнаты
+    // --------------------------------------------------------
+    socket.on("removePlayer", (data) => {
+        const { roomNumber, playerName } = data || {};
+        const room = activeRooms.get(roomNumber);
+        if (!room) return;
+
+        if (!room.players.has(playerName)) {
+            console.log(`removePlayer: игрок ${playerName} не найден в комнате ${roomNumber}`);
+            return;
+        }
+
+        // Удаляем из состава
+        room.players.delete(playerName);
+        room.finalAnswers.delete(playerName);
+
+        // Если он был в топе — убираем
+        room.topClicks = room.topClicks.filter(n => n !== playerName);
+
+        // Если он был «победителем» — обнуляем (победитель определится заново)
+        if (room.winner === playerName) {
+            room.winner = null;
+        }
+
+        // Убираем из socketRegistry все записи этого игрока в этой комнате,
+        // чтобы при disconnect не пытались пометить online=false удалённого игрока.
+        // Находим все сокеты этого игрока в этой комнате и выгоняем их
+        const socketsToKick = [];
+        for (const [sid, info] of socketRegistry.entries()) {
+            if (info.roomNumber === roomNumber && info.playerName === playerName) {
+                socketsToKick.push(sid);
+            }
+        }
+
+        for (const sid of socketsToKick) {
+            const s = io.sockets.sockets.get(sid);
+            if (s) {
+                s.emit("onKicked", { reason: "Администратор удалил вас из комнаты." });
+                s.leave(roomNumber);
+            }
+            socketRegistry.delete(sid);
+        }
+
+        console.log(`Игрок ${playerName} удалён из комнаты ${roomNumber}`);
+
+        // Обновляем всем в комнате
+        broadcastPlayersList(roomNumber, room);
+        broadcastScores(roomNumber, room);
+        broadcastTopClicks(roomNumber, room);
+        broadcastFinalAnswers(roomNumber, room);
+
         scheduleSave();
     });
 
