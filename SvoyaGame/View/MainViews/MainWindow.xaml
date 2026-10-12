@@ -261,7 +261,7 @@
                                    FontWeight="Bold"
                                    FontSize="13"
                                    Margin="0,0,0,6"/>
-                        <TextBlock x:Name="Top1Text" Text="1. —" Foreground="{StaticResource AccentGreen}"  FontSize="14" FontWeight="Bold"/>
+                        <TextBlock x:Name="Top1Text" Text="1. —" Foreground="{StaticResource AccentGreen}"  FontSize="16" FontWeight="Bold"/>
                         <TextBlock x:Name="Top2Text" Text="2. —" Foreground="{StaticResource TextMain}"     FontSize="13" Margin="0,2,0,0"/>
                         <TextBlock x:Name="Top3Text" Text="3. —" Foreground="{StaticResource TextMain}"     FontSize="13" Margin="0,2,0,0"/>
                     </StackPanel>

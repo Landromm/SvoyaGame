@@ -165,23 +165,26 @@
 		}
 
         /* Большая кнопка */
-        #buzzer {
-            display: none;
-            margin: 0 auto;
-            width: 220px;
-            height: 220px;
-            border-radius: 50%;
-            border: none;
-            font-size: 30px;
-            font-weight: 800;
-            letter-spacing: 1px;
-            color: #fff;
-            background: radial-gradient(circle at 50% 35%, #ff6b74 0%, var(--red) 60%, #b3242f 100%);
-            box-shadow: 0 14px 0 #8f1f28, 0 20px 40px rgba(230, 57, 70, 0.35);
-            cursor: pointer;
-            transition: 0.1s;
-            user-select: none;
-        }
+		#buzzer {
+			display: none;
+			margin: 0 auto;
+			width: 220px;
+			height: 220px;
+			border-radius: 50%;
+			border: none;
+			font-size: 30px;
+			font-weight: 800;
+			letter-spacing: 1px;
+			color: #fff;
+			background: radial-gradient(circle at 50% 35%, #ff6b74 0%, var(--red) 60%, #b3242f 100%);
+			box-shadow: 0 14px 0 #8f1f28, 0 20px 40px rgba(230, 57, 70, 0.35);
+			cursor: pointer;
+			transition: 0.1s;
+			user-select: none;
+			touch-action: manipulation; /* ← убирает 300 мс задержки на мобильных */
+			-webkit-user-select: none;
+			-webkit-touch-callout: none; /* ← отключает всплывающее меню долгого нажатия на iOS */
+		}
         #buzzer:active:not(:disabled) {
             box-shadow: 0 4px 0 #8f1f28, 0 8px 20px rgba(230, 57, 70, 0.35);
             transform: translateY(10px);
@@ -644,18 +647,21 @@ function unlockAudio() {
         // ============================================================
         // КЛИК ПО КНОПКЕ
         // ============================================================
-        document.getElementById('buzzer').addEventListener('click', () => {
-            if (!socket || !socket.connected) return;
+		document.getElementById('buzzer').addEventListener('pointerdown', (e) => {
+			// Только основное касание / левая кнопка мыши
+			if (!e.isPrimary) return;
 
-            // 1) СНАЧАЛА на сервер — тайминг регистрации не меняется
-            socket.emit("playerClick", {
-                roomNumber: roomNumber,
-                playerName: playerName
-            });
+			// Только левая кнопка мыши (для pointerType === 'mouse')
+			if (e.pointerType === 'mouse' && e.button !== 0) return;
 
-            // 2) ПОТОМ локально играем звук — не блокирует emit
-            playBuzz();
-        });
+			if (socket && socket.connected) {
+				socket.emit("playerClick", {
+					roomNumber: roomNumber,
+					playerName: playerName
+				});
+				playBuzz();
+			}
+		});
 
 		document.getElementById('betInput').addEventListener('input', validateBetForm);
 		document.getElementById('answerInput').addEventListener('input', validateAnswerForm);
