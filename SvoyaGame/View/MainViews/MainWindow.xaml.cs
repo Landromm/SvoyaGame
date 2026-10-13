@@ -123,6 +123,8 @@ public partial class MainWindow : Window
 				_boardWindow?.StopAllAudio();
 				_adminQuestionMedia.Stop();
 				_adminAnswerMedia.Stop();
+				// Обводка вопроса на табло
+				_boardWindow?.HighlightQuestion();
 			});
 			return Task.CompletedTask;
 		});
@@ -158,6 +160,7 @@ public partial class MainWindow : Window
 				_currentLeader = null;
 				SaveGameState();
 				_boardWindow?.HighlightFirst(null);
+				_boardWindow?.ClearQuestionHighlight();
 			});
 			return Task.CompletedTask;
 		});
@@ -212,9 +215,8 @@ public partial class MainWindow : Window
 				// Стереть сохранённое состояние
 				GameStateService.Clear();
 				_savedState = null;
+				_boardWindow?.ClearQuestionHighlight();
 			});
-
-
 			return Task.CompletedTask;
 		});
 	}
@@ -922,10 +924,13 @@ public partial class MainWindow : Window
     private async void BtnPlusScore_Click(object sender, RoutedEventArgs e)
         => await ChangeScoreAsync(sender, +1);
 
-    private async void BtnMinusScore_Click(object sender, RoutedEventArgs e)
-        => await ChangeScoreAsync(sender, -1);
+	private async void BtnMinusScore_Click(object sender, RoutedEventArgs e)
+	{
+		_boardWindow?.ClearQuestionHighlight();
+		await ChangeScoreAsync(sender, -1);
+	}
 
-    private async Task ChangeScoreAsync(object sender, int sign)
+	private async Task ChangeScoreAsync(object sender, int sign)
     {
         if (sender is not Button btn || btn.Tag is not PlayerRow player) return;
         if (_currentRoom is null || !_client.Connected) return;

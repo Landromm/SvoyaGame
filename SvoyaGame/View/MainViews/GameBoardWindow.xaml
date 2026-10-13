@@ -294,6 +294,21 @@
 					</StackPanel>
 				</Border>
 			</Grid>
+			<!-- Зелёная обводка: кто-то нажал буззер первым -->
+			<Border x:Name="QuestionHighlightBorder"
+				BorderBrush="#2ECC71"
+				BorderThickness="10"
+				CornerRadius="14"
+				Margin="6"
+				IsHitTestVisible="False"
+				Visibility="Collapsed">
+				<Border.Effect>
+					<DropShadowEffect Color="#2ECC71"
+                          BlurRadius="20"
+                          ShadowDepth="0"
+                          Opacity="0.7"/>
+				</Border.Effect>
+			</Border>
 		</Grid>
 
 		<!-- ========== ПРАВАЯ ЧАСТЬ: табло очков ========== -->

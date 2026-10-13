@@ -50,6 +50,8 @@ public partial class GameBoardWindow : Window
 	// =====================================================================
 	public void ShowRound(int roundIndex, Round round, HashSet<string> usedCells)
 	{
+		ClearQuestionHighlight();
+
 		_underlyingMode = BoardMode.Round;
 		_currentRoundIndex = roundIndex;
 
@@ -134,6 +136,8 @@ public partial class GameBoardWindow : Window
 
 				grid.Children.Add(tile);
 			}
+
+
 		}
 
 		BoardHost.Children.Add(grid);
@@ -161,6 +165,8 @@ public partial class GameBoardWindow : Window
 	// =====================================================================
 	public void ShowFinal(int roundIndex, List<FinalTheme> activeThemes, HashSet<string> usedCells)
 	{
+		ClearQuestionHighlight();
+
 		_underlyingMode = BoardMode.Final;
 		_currentRoundIndex = roundIndex;
 
@@ -236,6 +242,8 @@ public partial class GameBoardWindow : Window
 	// =====================================================================
 	public void ShowQuestion(string themeName, int price, ContentBlock question, ContentBlock answer, bool isFinal = false)
 	{
+		ClearQuestionHighlight();
+
 		if (isFinal)
 		{
 			HeaderTheme.Text = "ФИНАЛ";
@@ -268,6 +276,8 @@ public partial class GameBoardWindow : Window
 		GridView.Visibility = Visibility.Visible;
 		AnswerPanel.Visibility = Visibility.Collapsed;
 		CatInBagView.Visibility = Visibility.Collapsed;
+
+		ClearQuestionHighlight();
 	}
 
 	public void ShowAnswer()
@@ -468,6 +478,8 @@ public partial class GameBoardWindow : Window
 	/// </summary>
 	public void ShowCatInBag(string themeName, int price)
 	{
+		ClearQuestionHighlight();
+
 		CatInBagMeta.Text = $"{themeName} • {price}";
 
 		QuestionView.Visibility = Visibility.Collapsed;
@@ -502,6 +514,18 @@ public partial class GameBoardWindow : Window
 	{
 		_mediaQuestion.Stop();
 		_mediaAnswer.Stop();
+	}
+
+	/// <summary>Включает зелёную обводку вопроса (кто-то нажал буззер).</summary>
+	public void HighlightQuestion()
+	{
+		QuestionHighlightBorder.Visibility = Visibility.Visible;
+	}
+
+	/// <summary>Снимает зелёную обводку вопроса.</summary>
+	public void ClearQuestionHighlight()
+	{
+		QuestionHighlightBorder.Visibility = Visibility.Collapsed;
 	}
 
 	// =====================================================================
