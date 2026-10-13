@@ -1120,6 +1120,108 @@ public partial class ThemeEditorWindow : Window
 		}
 	}
 
+	// =====================================================================
+	// ЭКСПОРТ / ИМПОРТ ПАКА
+	// =====================================================================
+	private void BtnExportPack_Click(object sender, RoutedEventArgs e)
+	{
+		SaveUiToRound(_selectedRound);
+
+		var dlg = new Microsoft.Win32.SaveFileDialog
+		{
+			Filter = "Пак Своя игра (*.zip)|*.zip",
+			Title = "Выгрузить пак",
+			FileName = "svoya_igra_pack.zip"
+		};
+		if (dlg.ShowDialog() != true)
+			return;
+
+		try
+		{
+			PackService.ExportPack(_rounds.ToList(), dlg.FileName);
+
+			MessageBox.Show(
+				$"Пак успешно выгружен:\n{dlg.FileName}",
+				"Экспорт завершён",
+				MessageBoxButton.OK, MessageBoxImage.Information);
+		}
+		catch (Exception ex)
+		{
+			MessageBox.Show($"Не удалось выгрузить пак:\n{ex.Message}",
+				"Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+		}
+	}
+
+	private void BtnImportPack_Click(object sender, RoutedEventArgs e)
+	{
+		var dlg = new Microsoft.Win32.OpenFileDialog
+		{
+			Filter = "Пак Своя игра (*.zip)|*.zip",
+			Title = "Загрузить пак"
+		};
+		if (dlg.ShowDialog() != true)
+			return;
+
+		var confirm = MessageBox.Show(
+			"Текущие раунды и вопросы в редакторе будут заменены содержимым пака.\n" +
+			"Существующие медиафайлы с теми же именами будут перезаписаны.\n\n" +
+			"Продолжить?",
+			"Подтверждение",
+			MessageBoxButton.YesNo, MessageBoxImage.Warning);
+		if (confirm != MessageBoxResult.Yes)
+			return;
+
+		try
+		{
+			var result = PackService.ImportPack(dlg.FileName);
+
+			_loadingUi = true;
+			try
+			{
+				_rounds.Clear();
+				foreach (var r in result.Rounds)
+					_rounds.Add(r);
+
+				_selectedRound = null;
+				_selectedTheme = null;
+				_selectedFinalTheme = null;
+			}
+			finally
+			{
+				_loadingUi = false;
+			}
+
+			_isDirty = true;
+
+			if (_rounds.Count > 0)
+			{
+				RoundsList.SelectedIndex = -1;
+				RoundsList.SelectedIndex = 0;
+
+				_selectedRound = _rounds[0];
+				LoadRoundToUi(_selectedRound);
+			}
+			else
+			{
+				LoadRoundToUi(null);
+			}
+
+			var msg = $"Пак загружен.\n" +
+					  $"Раундов: {result.Rounds.Count}\n" +
+					  $"Медиафайлов скопировано: {result.MediaCopied}";
+			if (result.MediaMissing > 0)
+				msg += $"\nНе найдено в архиве: {result.MediaMissing}";
+
+			MessageBox.Show(msg, "Импорт завершён",
+				MessageBoxButton.OK, MessageBoxImage.Information);
+		}
+		catch (Exception ex)
+		{
+			MessageBox.Show($"Не удалось загрузить пак:\n{ex.Message}",
+				"Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+		}
+	}
+
 	private void BtnCancel_Click(object sender, RoutedEventArgs e)
 	{
 		Close();

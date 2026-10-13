@@ -281,11 +281,33 @@
 				<ColumnDefinition Width="Auto"/>
 			</Grid.ColumnDefinitions>
 
-			<Button x:Name="BtnOpenMedia" Grid.Column="0"
-                    Style="{StaticResource BlueButton}"
-                    Content="📁 ОТКРЫТЬ MEDIA"
-                    Click="BtnOpenMedia_Click"
-                    Width="180" Height="40" FontSize="12"/>
+			<StackPanel Grid.Column="0" Orientation="Horizontal">
+				<Button x:Name="BtnOpenMedia"
+            Style="{StaticResource BlueButton}"
+            Content="📁 MEDIA"
+            Click="BtnOpenMedia_Click"
+            Width="120"
+            Height="40"
+            FontSize="12"/>
+
+				<Button x:Name="BtnExportPack"
+            Style="{StaticResource GreenButton}"
+            Content="📦 ВЫГРУЗИТЬ ПАК"
+            Click="BtnExportPack_Click"
+            Width="170"
+            Height="40"
+            Margin="8,0,0,0"
+            FontSize="12"/>
+
+				<Button x:Name="BtnImportPack"
+            Style="{StaticResource GoldButton}"
+            Content="📥 ЗАГРУЗИТЬ ПАК"
+            Click="BtnImportPack_Click"
+            Width="170"
+            Height="40"
+            Margin="8,0,0,0"
+            FontSize="12"/>
+			</StackPanel>
 
 			<StackPanel Grid.Column="2" Orientation="Horizontal">
 				<Button x:Name="BtnCancel" Style="{StaticResource BlueButton}"

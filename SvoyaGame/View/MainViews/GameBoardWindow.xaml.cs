@@ -427,6 +427,7 @@ public partial class GameBoardWindow : Window
 		{
 			txtCtrl.Text = block.Text!;
 			txtCtrl.Foreground = (Brush)FindResource("TextMain");
+			txtCtrl.FontSize = 56;
 			txtCtrl.Visibility = Visibility.Visible;
 		}
 		else if (block?.HasImage == true && !imageOk)

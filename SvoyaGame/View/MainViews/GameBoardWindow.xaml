@@ -147,14 +147,14 @@
 				</Grid.RowDefinitions>
 
 				<StackPanel Grid.Row="0"
-            Orientation="Horizontal"
-            HorizontalAlignment="Center"
-            Margin="0,24,0,10">
+					Orientation="Horizontal"
+					HorizontalAlignment="Center"
+					Margin="0,24,0,10">
 					<TextBlock x:Name="HeaderTheme"
-               Text="Тема"
-               Foreground="{StaticResource AccentGold}"
-               FontSize="28"
-               FontWeight="Bold"/>
+					   Text="Тема"
+					   Foreground="{StaticResource AccentGold}"
+					   FontSize="28"
+					   FontWeight="Bold"/>
 					<TextBlock x:Name="HeaderSeparator"
                Text=" • "
                Foreground="{StaticResource AccentGold}"
@@ -221,7 +221,7 @@
 					<StackPanel>
 						<TextBlock Text="ОТВЕТ:"
                                Foreground="#9FB3C8"
-                               FontSize="14"
+                               FontSize="24"
                                FontWeight="Bold"
                                HorizontalAlignment="Center"/>
 
