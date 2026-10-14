@@ -47,6 +47,9 @@ public partial class MainWindow : Window
 	private CatInBagPending? _catInBagPending;
 	private readonly MediaPlayer _adminAnswerMedia = new();
 	private readonly MediaPlayer _adminQuestionMedia = new();
+	private readonly MediaPlayer _sndCatInBag = new();
+	private readonly MediaPlayer _sndBuzzer = new();
+	private readonly MediaPlayer _sndAnswer = new();
 	private string? _currentRoom;
 	private GameState? _savedState;
 	private string? _currentLeader;
@@ -60,7 +63,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 		_savedState = GameStateService.Load();
-
+		InitUiSounds();
 		// ---- Загрузка вопросов ----
 		_rounds = QuestionsLoader.TryLoadRounds(out var loadError) ?? new List<Round>();
 		if (loadError != null)
@@ -117,14 +120,18 @@ public partial class MainWindow : Window
 				BtnReset.IsEnabled = true;
 				_currentLeader = winnerName;
 				SaveGameState();
+
 				_boardWindow?.HighlightFirst(_currentLeader);
+				_boardWindow?.HighlightQuestion();
+
+				// Звук первого нажатия
+				PlaySound(_sndBuzzer);
 
 				// Останавливаем всё аудио — игрок нажал буззер
 				_boardWindow?.StopAllAudio();
 				_adminQuestionMedia.Stop();
 				_adminAnswerMedia.Stop();
 				// Обводка вопроса на табло
-				_boardWindow?.HighlightQuestion();
 			});
 			return Task.CompletedTask;
 		});
@@ -696,6 +703,8 @@ public partial class MainWindow : Window
         // ---- КОТ В МЕШКЕ ----
         if (_catInBagCells.Contains(usedKey))
 		{
+			PlaySound(_sndCatInBag);
+
 			_catInBagPending = new CatInBagPending
 			{
 				RoundIndex = tag.RoundIndex,
@@ -748,6 +757,8 @@ public partial class MainWindow : Window
 	{
 		if (_catInBagPending is null)
 			return;
+
+		StopSound(_sndCatInBag);
 
 		var p = _catInBagPending;
 		_catInBagPending = null;
@@ -1063,7 +1074,9 @@ public partial class MainWindow : Window
     {
         _boardWindow?.ShowAnswer();
         BtnShowAnswer.IsEnabled = false;
-    }
+
+		PlaySound(_sndAnswer);
+	}
 
 	private void BtnHideQuestion_Click(object sender, RoutedEventArgs e)
 	{
@@ -1303,11 +1316,55 @@ public partial class MainWindow : Window
 		_boardWindow.UpdatePlayers(data);
 	}
 
+	// =====================================================================
+	// UI-ЗВУКИ
+	// =====================================================================
+	private void InitUiSounds()
+	{
+		TryLoadSound(_sndCatInBag, "cat_in_bag.mp3");
+		TryLoadSound(_sndBuzzer, "buzzer.mp3");
+		TryLoadSound(_sndAnswer, "answer.mp3");
+	}
+
+	private static void TryLoadSound(MediaPlayer player, string fileName)
+	{
+		var path = Path.Combine(AppContext.BaseDirectory, "sounds", fileName);
+		if (!File.Exists(path))
+			return;
+		try
+		{
+			player.Open(new Uri(path, UriKind.Absolute));
+		}
+		catch { /* ignore */ }
+	}
+
+	private static void PlaySound(MediaPlayer player)
+	{
+		if (player.Source is null)
+			return;
+		try
+		{
+			player.Position = TimeSpan.Zero;
+			player.Play();
+		}
+		catch { /* ignore */ }
+	}
+
+	private static void StopSound(MediaPlayer player)
+	{
+		try
+		{ player.Stop(); }
+		catch { /* ignore */ }
+	}
+
 	protected override void OnClosed(EventArgs e)
 	{
 		SaveGameState();   // сохранить перед выходом
 		_adminAnswerMedia.Close();
 		_adminQuestionMedia.Close();
+		_sndCatInBag.Close();
+		_sndBuzzer.Close();
+		_sndAnswer.Close();
 		base.OnClosed(e);
 	}
 
